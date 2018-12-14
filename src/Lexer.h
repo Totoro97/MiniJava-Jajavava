@@ -7,13 +7,28 @@
 enum TokenTag {
   ID,
   INT,
+  BOOL,
   RESERVED,
-  OP
+  OP,
+  SYMBOL,
+  DEFAULT
 };
 
 struct Token {
   TokenTag tag;
   std::string chars;
+};
+
+class NFANode {
+public: 
+  NFANode *nex_[256];
+  bool valid_;
+  TokenTag tag_;
+  
+  NFANode(bool valid = false, TokenTag tag = DEFAULT) {
+    valid_ = valid;
+    tag_ = tag;
+  }
 };
 
 class Lexer {
@@ -28,6 +43,8 @@ class ManualLexer : public Lexer {
 public:
   ManualLexer();
   std::string GetTokens(std::ifstream &in_stream, std::vector<Token> &tokens);
+
+  std::vector<NFANode *> heads_;
 };
 
 class ANTLRLexer : public Lexer {
