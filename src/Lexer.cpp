@@ -16,7 +16,7 @@ RESERVED: {
   this, new
 }
 SYMBOL: {
-  , ; { } [ ] ( ) . ...
+  , ; { } [ ] ( ) . ! ...
 }
 OP: {
   + - * && ... < > =
@@ -120,6 +120,7 @@ ManualLexer::ManualLexer() {
   AddPath(head, std::string("="), OP);
   AddPath(head, std::string("<"), OP);
   AddPath(head, std::string(">"), OP);
+  AddPath(head, std::string("!"), OP);
   heads_.push_back(head);
 
   // COMMENT
@@ -165,7 +166,7 @@ std::string ManualLexer::GetTokens(std::ifstream &in_stream, std::vector<Token> 
   std::memset(s, 0, 10240);
   int n = 0;
   do s[n++] = (char) in_stream.get(); while (s[n - 1] != -1);
-  s[n - 1] = '$';
+  s[n - 1] = '\n';
   std::cout << "n = " << n << std::endl;
   std::vector<NFANode *> nodes = heads_;
   int res = heads_.size();

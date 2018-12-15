@@ -47,7 +47,7 @@ public:
 class ManualLexer : public Lexer {
 public:
   ManualLexer();
-  std::string GetTokens(std::ifstream &in_stream, std::vector<Token> &tokens);
+  std::string GetTokens(std::ifstream &in_stream, std::vector<Token> &tokens) final;
 
   std::vector<NFANode *> heads_;
 };
@@ -55,5 +55,5 @@ public:
 class ANTLRLexer : public Lexer {
 public:
   ANTLRLexer();
-  std::string GetTokens(std::ifstream &in_stream, std::vector<Token> &tokens);
+  std::string GetTokens(std::ifstream &in_stream, std::vector<Token> &tokens) final;
 };
