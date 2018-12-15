@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "Lexer.h"
+#include "Parser.h"
 
 int main() {
   std::ifstream in_stream;
@@ -22,13 +23,13 @@ int main() {
     return 0;
   }
 
-  /*ParseTree parse_tree;
-  parser = new Parser();
+  ParseTree parse_tree;
+  auto parser = new Parser();
   err_info = paser->GetParseTree(tokens, parse_tree);
   delete(parser);
   if (err_info != std::string("")) {
     std::cout << err_info << std::endl;
     return 0;
-  }*/
+  }
   return 0;
 }
