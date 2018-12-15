@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <cstring>
 #include <string>
 #include <fstream>
 #include <vector>
@@ -17,6 +18,7 @@ enum TokenTag {
 struct Token {
   TokenTag tag;
   std::string chars;
+  Token(TokenTag _tag = DEFAULT, std::string _chars = "") : tag(_tag), chars(_chars) {}
 };
 
 class NFANode {
@@ -26,6 +28,7 @@ public:
   TokenTag tag_;
   
   NFANode(bool valid = false, TokenTag tag = DEFAULT) {
+    memset(nex_, 0, 256 * sizeof(NFANode *));
     valid_ = valid;
     tag_ = tag;
   }
@@ -36,6 +39,7 @@ public:
   Lexer() {}
   virtual std::string GetTokens(std::ifstream &in_stream, std::vector<Token> &tokens) {
     std::cout << "I am the base. " << std::endl;
+    return std::string("");
   }
 };
 

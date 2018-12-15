@@ -1,4 +1,6 @@
 #include "Lexer.h"
+#include <cstring>
+#include <iostream>
 #include <vector>
 #include <string>
 
@@ -37,7 +39,11 @@ ManualLexer::ManualLexer() {
   AddEdge(head, tmp, 'a', 'z');
   AddEdge(head, tmp, 'A', 'Z');
   AddEdge(head, tmp, '_', '_');
+  AddEdge(tmp, tmp, 'a', 'z');
+  AddEdge(tmp, tmp, 'A', 'Z');
+  AddEdge(tmp, tmp, '_', '_');
   tmp->valid_ = true;
+  tmp->tag_ = ID;
   heads_.push_back(head);
 
   // INT
@@ -47,7 +53,10 @@ ManualLexer::ManualLexer() {
   AddEdge(head, int_tmp_0, '-', '-');
   AddEdge(head, int_tmp_1, '0', '9');
   AddEdge(int_tmp_0, int_tmp_1, '0', '9');
+  int_tmp_1->valid_ = true;
+  int_tmp_1->tag_ = INT;
   heads_.push_back(head);
+
 
   // RESERVED
   auto AddPath = [](NFANode *head, std::string path, TokenTag tag) {
@@ -95,9 +104,60 @@ ManualLexer::ManualLexer() {
   AddPath(head, std::string("*"), OP);
   
   heads_.push_back(head);
-  return; 
+  std::cout << "yes" << std::endl;
+  return;
 }
 
 std::string ManualLexer::GetTokens(std::ifstream &in_stream, std::vector<Token> &tokens) {
-   
+  char *s = new char[10240];
+  std::memset(s, 0, 10240);
+  in_stream.read(s, 10240);
+  int n = (int) std::strlen(s);
+  s[n++] = '$';
+  std::vector<NFANode *> nodes = heads_;
+  int res = heads_.size();
+  int past = 0;
+  int last_valid = -1;
+  TokenTag ans_tag;
+  for (int i = 0; i < n; ) {
+    int v = static_cast<int>(s[i]);
+    if (s[i] == '\n' || s[i] == '\r' || s[i] == ' ') {
+      for (int j = 0; j < nodes.size(); j++) {
+        if (nodes[j] != heads_[j] && nodes[j] != nullptr) {
+          nodes[j] = nullptr;
+          res--;
+        }
+      }
+      past = i;
+    } else {
+      for (int j = 0; j < nodes.size(); j++) {
+        if (nodes[j] == nullptr)
+          continue;
+        nodes[j] = nodes[j]->nex_[v];
+        if (nodes[j] == nullptr) {
+          res--;
+        }
+        else if (nodes[j]->valid_) {
+          ans_tag = nodes[j]->tag_;
+          last_valid = i;
+        }
+      }
+    }
+    if (res == 0) {
+      if (past == last_valid + 1) {
+        return std::string("Error");
+      }
+      std::cout << "past = " << past << " last_valid = " << last_valid << std::endl;
+      tokens.emplace_back(ans_tag, std::string(s + past, last_valid - past + 1));
+      std::cout << tokens.back().chars << std::endl;
+      past = i = last_valid + 1;
+      for (int j = 0; j < heads_.size(); j++) {
+        nodes[j] = heads_[j];
+      }
+      res = heads_.size();
+    } else {
+      i++;
+    }
+  }
+  return std::string("OK");
 }
