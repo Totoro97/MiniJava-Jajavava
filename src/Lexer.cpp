@@ -19,7 +19,7 @@ SYMBOL: {
   , ; { } [ ] ( ) . ...
 }
 OP: {
-  + - * && ... < >
+  + - * && ... < > =
 }
 */
 
@@ -39,16 +39,24 @@ ManualLexer::ManualLexer() {
 
   // ID
   head = new NFANode();
-  auto tmp = new NFANode();
-  AddEdge(head, tmp, 'a', 'z');
-  AddEdge(head, tmp, 'A', 'Z');
-  AddEdge(head, tmp, '_', '_');
-  AddEdge(tmp, tmp, 'a', 'z');
-  AddEdge(tmp, tmp, 'A', 'Z');
-  AddEdge(tmp, tmp, '_', '_');
+  auto id_tmp_0 = new NFANode();
+  auto id_tmp_1 = new NFANode();
+  AddEdge(head, id_tmp_0, 'a', 'z');
+  AddEdge(head, id_tmp_0, 'A', 'Z');
+  AddEdge(head, id_tmp_0, '_', '_');
+  AddEdge(id_tmp_0, id_tmp_1, 'a', 'z');
+  AddEdge(id_tmp_0, id_tmp_1, 'A', 'Z');
+  AddEdge(id_tmp_0, id_tmp_1, '_', '_');
+  AddEdge(id_tmp_0, id_tmp_1, '0', '9');
+  AddEdge(id_tmp_1, id_tmp_1, 'a', 'z');
+  AddEdge(id_tmp_1, id_tmp_1, 'A', 'Z');
+  AddEdge(id_tmp_1, id_tmp_1, '_', '_');
+  AddEdge(id_tmp_1, id_tmp_1, '0', '9');
   AddWhiteSpaceEdge(head, head);
-  tmp->valid_ = true;
-  tmp->tag_ = ID;
+  id_tmp_0->valid_ = true;
+  id_tmp_0->tag_ = ID;
+  id_tmp_1->valid_ = true;
+  id_tmp_1->tag_ = ID;
   heads_.push_back(head);
 
   // INT
@@ -63,7 +71,6 @@ ManualLexer::ManualLexer() {
   int_tmp_1->valid_ = true;
   int_tmp_1->tag_ = INT;
   heads_.push_back(head);
-
 
   // RESERVED
   auto AddPath = [](NFANode *head, std::string path, TokenTag tag) {
@@ -110,20 +117,22 @@ ManualLexer::ManualLexer() {
   AddPath(head, std::string("-"), OP);
   AddPath(head, std::string("&&"), OP);
   AddPath(head, std::string("*"), OP);
+  AddPath(head, std::string("="), OP);
+  AddPath(head, std::string("<"), OP);
+  AddPath(head, std::string(">"), OP);
   heads_.push_back(head);
 
   // COMMENT
   head = new NFANode();
   auto com_tmp_0 = new NFANode();
   auto com_tmp_1 = new NFANode();
-  auto com_tmp_2 = new NFANode();
   auto com_tmp_3 = new NFANode();
   AddWhiteSpaceEdge(head, head);
   AddEdge(head, com_tmp_0, '/', '/');
   AddEdge(com_tmp_0, com_tmp_1, '/', '/');
-  AddEdge(com_tmp_1, com_tmp_2, (char) 0, (char) 255);
-  AddEdge(com_tmp_2, com_tmp_3, '\n', '\n');
-  AddEdge(com_tmp_2, com_tmp_3, '\r', '\r');
+  AddEdge(com_tmp_1, com_tmp_1, (char) 0, (char) 127);
+  AddEdge(com_tmp_1, com_tmp_3, '\n', '\n');
+  AddEdge(com_tmp_1, com_tmp_3, '\r', '\r');
   AddEdge(com_tmp_3, com_tmp_3, '\n', '\n');
   AddEdge(com_tmp_3, com_tmp_3, '\r', '\r');
   com_tmp_3->valid_ = true;
@@ -133,14 +142,15 @@ ManualLexer::ManualLexer() {
   head = new NFANode();
   com_tmp_0 = new NFANode();
   com_tmp_1 = new NFANode();
-  com_tmp_2 = new NFANode();
+  auto com_tmp_2 = new NFANode();
   com_tmp_3 = new NFANode();
 
   AddWhiteSpaceEdge(head, head);
   AddEdge(head, com_tmp_0, '/', '/');
   AddEdge(com_tmp_0, com_tmp_1, '*', '*');
-  AddEdge(com_tmp_1, com_tmp_1, (char) 0, (char) 255);
+  AddEdge(com_tmp_1, com_tmp_1, (char) 0, (char) 127);
   AddEdge(com_tmp_1, com_tmp_2, '*', '*');
+  AddEdge(com_tmp_2, com_tmp_1, (char) 0, (char) 127);
   AddEdge(com_tmp_2, com_tmp_2, '*', '*');
   AddEdge(com_tmp_2, com_tmp_3, '/', '/');
   com_tmp_3->valid_ = true;
@@ -164,25 +174,15 @@ std::string ManualLexer::GetTokens(std::ifstream &in_stream, std::vector<Token> 
   TokenTag ans_tag;
   for (int i = 0; i < n; ) {
     int v = static_cast<int>(s[i]);
-    if (s[i] == '\n' || s[i] == '\r' || s[i] == ' ' || s[i] == '\t') {
-      for (int j = 0; j < nodes.size(); j++) {
-        if (nodes[j] != heads_[j] && nodes[j] != nullptr) {
-          nodes[j] = nullptr;
-          res--;
-        }
-      }
-    } else {
-      for (int j = 0; j < nodes.size(); j++) {
-        if (nodes[j] == nullptr)
-          continue;
-        nodes[j] = nodes[j]->nex_[v];
-        if (nodes[j] == nullptr) {
-          res--;
-        }
-        else if (nodes[j]->valid_) {
-          ans_tag = nodes[j]->tag_;
-          last_valid = i;
-        }
+    for (int j = 0; j < nodes.size(); j++) {
+      if (nodes[j] == nullptr)
+        continue;
+      nodes[j] = nodes[j]->nex_[v];
+      if (nodes[j] == nullptr) {
+        res--;
+      } else if (nodes[j]->valid_) {
+        ans_tag = nodes[j]->tag_;
+        last_valid = i;
       }
     }
     if (res == 0) {
