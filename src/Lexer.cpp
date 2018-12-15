@@ -16,7 +16,7 @@ RESERVED: {
   this, new
 }
 SYMBOL: {
-  , ; { } [ ] ( )...
+  , ; { } [ ] ( ) . ...
 }
 OP: {
   + - * && ... < >
@@ -53,6 +53,7 @@ ManualLexer::ManualLexer() {
   AddEdge(head, int_tmp_0, '-', '-');
   AddEdge(head, int_tmp_1, '0', '9');
   AddEdge(int_tmp_0, int_tmp_1, '0', '9');
+  AddEdge(int_tmp_1, int_tmp_1, '0', '9');
   int_tmp_1->valid_ = true;
   int_tmp_1->tag_ = INT;
   heads_.push_back(head);
@@ -98,6 +99,7 @@ ManualLexer::ManualLexer() {
   AddPath(head, std::string("]"), SYMBOL);
   AddPath(head, std::string(")"), SYMBOL);
   AddPath(head, std::string("("), SYMBOL);
+  AddPath(head, std::string("."), SYMBOL);
   AddPath(head, std::string("+"), OP);
   AddPath(head, std::string("-"), OP);
   AddPath(head, std::string("&&"), OP);
@@ -105,15 +107,15 @@ ManualLexer::ManualLexer() {
   
   heads_.push_back(head);
   std::cout << "yes" << std::endl;
-  return;
 }
 
 std::string ManualLexer::GetTokens(std::ifstream &in_stream, std::vector<Token> &tokens) {
   char *s = new char[10240];
   std::memset(s, 0, 10240);
-  in_stream.read(s, 10240);
-  int n = (int) std::strlen(s);
-  s[n++] = '$';
+  int n = 0;
+  do s[n++] = (char) in_stream.get(); while (s[n - 1] != -1);
+  s[n - 1] = '$';
+  std::cout << "n = " << n << std::endl;
   std::vector<NFANode *> nodes = heads_;
   int res = heads_.size();
   int past = 0;
@@ -121,14 +123,13 @@ std::string ManualLexer::GetTokens(std::ifstream &in_stream, std::vector<Token> 
   TokenTag ans_tag;
   for (int i = 0; i < n; ) {
     int v = static_cast<int>(s[i]);
-    if (s[i] == '\n' || s[i] == '\r' || s[i] == ' ') {
+    if (s[i] == '\n' || s[i] == '\r' || s[i] == ' ' || s[i] == '\t') {
       for (int j = 0; j < nodes.size(); j++) {
         if (nodes[j] != heads_[j] && nodes[j] != nullptr) {
           nodes[j] = nullptr;
           res--;
         }
       }
-      past = i;
     } else {
       for (int j = 0; j < nodes.size(); j++) {
         if (nodes[j] == nullptr)
@@ -147,14 +148,19 @@ std::string ManualLexer::GetTokens(std::ifstream &in_stream, std::vector<Token> 
       if (past == last_valid + 1) {
         return std::string("Error");
       }
-      std::cout << "past = " << past << " last_valid = " << last_valid << std::endl;
+      while(s[past] == '\n' || s[past] == '\r' || s[past] == ' ' || s[past] == '\t')
+        past++;
+      // std::cout << "past = " << past << " last_valid = " << last_valid << std::endl;
       tokens.emplace_back(ans_tag, std::string(s + past, last_valid - past + 1));
-      std::cout << tokens.back().chars << std::endl;
+      // std::cout << tokens.back().chars << std::endl;
       past = i = last_valid + 1;
       for (int j = 0; j < heads_.size(); j++) {
         nodes[j] = heads_[j];
       }
       res = heads_.size();
+      if (i == n - 1) {
+        break;
+      }
     } else {
       i++;
     }
