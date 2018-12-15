@@ -34,6 +34,7 @@ public:
   virtual std::string GetParseTree(const std::vector<Token> &tokens, ParseTree &parse_tree) {
     return "";
   }
+
 };
 
 class ManualParser : public Parser {
@@ -41,6 +42,7 @@ public:
   ManualParser();
   ~ManualParser();
   std::string GetParseTree(const std::vector<Token> &tokens, ParseTree &parse_tree) final;
+  void AddRule(TokenTag head, std::vector<TokenTag> form);
 
   std::vector<Rule *> rules_;
 };

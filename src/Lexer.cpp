@@ -101,9 +101,11 @@ ManualLexer::ManualLexer() {
   AddPath(head, std::string("return"), RETURN);
   AddPath(head, std::string("if"), IF);
   AddPath(head, std::string("else"), ELSE);
+  AddPath(head, std::string("while"), WHILE);
   AddPath(head, std::string("System.out.println"), PRINT);
   AddPath(head, std::string("this"), THIS);
-  AddPath(head, std::string("new"), NOW);
+  AddPath(head, std::string("new"), NEW);
+  AddPath(head, std::string("length"), LENGTH);
   AddPath(head, std::string(","), COMMA);
   AddPath(head, std::string(";"), SEMI);
   AddPath(head, std::string("{"), LCUR);
