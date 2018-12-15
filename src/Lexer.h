@@ -12,6 +12,7 @@ enum TokenTag {
   RESERVED,
   OP,
   SYMBOL,
+  COMMENT,
   DEFAULT
 };
 

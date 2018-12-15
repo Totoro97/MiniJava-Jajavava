@@ -27,13 +27,17 @@ ManualLexer::ManualLexer() {
   heads_.clear();
   NFANode *head;
 
-  auto AddEdge = [](NFANode *a, NFANode *b, char l, char r){
+  auto AddEdge = [](NFANode *a, NFANode *b, char l, char r) {
     for (int i = int(l); i <= int(r); i++) {
       a->nex_[i] = b;
     }
   };
 
-  // ID 
+  auto AddWhiteSpaceEdge = [](NFANode *a, NFANode *b) {
+    a->nex_[(int) '\n'] = a->nex_[(int) '\r'] = a->nex_[(int) '\t'] = a->nex_[(int) ' '] = b;
+  };
+
+  // ID
   head = new NFANode();
   auto tmp = new NFANode();
   AddEdge(head, tmp, 'a', 'z');
@@ -42,6 +46,7 @@ ManualLexer::ManualLexer() {
   AddEdge(tmp, tmp, 'a', 'z');
   AddEdge(tmp, tmp, 'A', 'Z');
   AddEdge(tmp, tmp, '_', '_');
+  AddWhiteSpaceEdge(head, head);
   tmp->valid_ = true;
   tmp->tag_ = ID;
   heads_.push_back(head);
@@ -54,6 +59,7 @@ ManualLexer::ManualLexer() {
   AddEdge(head, int_tmp_1, '0', '9');
   AddEdge(int_tmp_0, int_tmp_1, '0', '9');
   AddEdge(int_tmp_1, int_tmp_1, '0', '9');
+  AddWhiteSpaceEdge(head, head);
   int_tmp_1->valid_ = true;
   int_tmp_1->tag_ = INT;
   heads_.push_back(head);
@@ -68,12 +74,12 @@ ManualLexer::ManualLexer() {
       }
       head = head->nex_[int(path[i])];
     }
-
     head->valid_ = true;
     head->tag_ = tag;
   };
 
   head = new NFANode();
+  AddWhiteSpaceEdge(head, head);
   AddPath(head, std::string("true"), BOOL);
   AddPath(head, std::string("false"), BOOL);
   AddPath(head, std::string("class"), RESERVED);
@@ -104,8 +110,43 @@ ManualLexer::ManualLexer() {
   AddPath(head, std::string("-"), OP);
   AddPath(head, std::string("&&"), OP);
   AddPath(head, std::string("*"), OP);
-  
   heads_.push_back(head);
+
+  // COMMENT
+  head = new NFANode();
+  auto com_tmp_0 = new NFANode();
+  auto com_tmp_1 = new NFANode();
+  auto com_tmp_2 = new NFANode();
+  auto com_tmp_3 = new NFANode();
+  AddWhiteSpaceEdge(head, head);
+  AddEdge(head, com_tmp_0, '/', '/');
+  AddEdge(com_tmp_0, com_tmp_1, '/', '/');
+  AddEdge(com_tmp_1, com_tmp_2, (char) 0, (char) 255);
+  AddEdge(com_tmp_2, com_tmp_3, '\n', '\n');
+  AddEdge(com_tmp_2, com_tmp_3, '\r', '\r');
+  AddEdge(com_tmp_3, com_tmp_3, '\n', '\n');
+  AddEdge(com_tmp_3, com_tmp_3, '\r', '\r');
+  com_tmp_3->valid_ = true;
+  com_tmp_3->tag_ = COMMENT;
+  heads_.push_back(head);
+
+  head = new NFANode();
+  com_tmp_0 = new NFANode();
+  com_tmp_1 = new NFANode();
+  com_tmp_2 = new NFANode();
+  com_tmp_3 = new NFANode();
+
+  AddWhiteSpaceEdge(head, head);
+  AddEdge(head, com_tmp_0, '/', '/');
+  AddEdge(com_tmp_0, com_tmp_1, '*', '*');
+  AddEdge(com_tmp_1, com_tmp_1, (char) 0, (char) 255);
+  AddEdge(com_tmp_1, com_tmp_2, '*', '*');
+  AddEdge(com_tmp_2, com_tmp_2, '*', '*');
+  AddEdge(com_tmp_2, com_tmp_3, '/', '/');
+  com_tmp_3->valid_ = true;
+  com_tmp_3->tag_ = COMMENT;
+  heads_.push_back(head);
+
   std::cout << "yes" << std::endl;
 }
 

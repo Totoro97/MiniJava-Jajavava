@@ -15,7 +15,7 @@ int main() {
   delete(lexer);
   in_stream.close();
   for (auto &token : tokens) {
-    std::cout << token.chars << " " << token.tag << std::endl;
+    std::cout << token.tag << " " << token.chars << std::endl;
   }
   if (err_info != std::string("OK")) {
     std::cout << err_info << std::endl;
