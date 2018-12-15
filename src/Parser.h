@@ -31,12 +31,16 @@ class Parser {
 public:
   Parser() {}
   ~Parser() {}
-  virtual std::string GetParseTree(const std::vector<Token> &tokens, ParseTree *parse_tree);
+  virtual std::string GetParseTree(const std::vector<Token> &tokens, ParseTree &parse_tree) {
+    return "";
+  }
 };
 
 class ManualParser : public Parser {
 public:
   ManualParser();
   ~ManualParser();
-  virtual std::string GetParseTree(const std::vector<Token> &tokens, ParseTree *parse_tree) final;
+  std::string GetParseTree(const std::vector<Token> &tokens, ParseTree &parse_tree) final;
+
+  std::vector<Rule *> rules_;
 };

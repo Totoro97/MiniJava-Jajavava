@@ -25,7 +25,7 @@ int main() {
 
   ParseTree parse_tree;
   auto parser = new Parser();
-  err_info = paser->GetParseTree(tokens, parse_tree);
+  err_info = parser->GetParseTree(tokens, parse_tree);
   delete(parser);
   if (err_info != std::string("")) {
     std::cout << err_info << std::endl;
