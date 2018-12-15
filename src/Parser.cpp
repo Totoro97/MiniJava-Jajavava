@@ -42,7 +42,26 @@ ManualParser::ManualParser() {
 }
 
 void ManualParser::AddRule(TokenTag head, std::vector<TokenTag> form) {
-
+  auto init_node = new NFANode();
+  std::vector<NFANode *> current_nodes = { init_node };
+  for (auto iter = form.begin(); iter != form.end(); iter++) {
+    auto token = *iter;
+    auto new_node = new NFANode();
+    for (auto current_node : current_nodes) {
+      current_node->nex_[token] = new_node;
+    }
+    if (token == MANY_OR_ZERO) {
+      new_node->nex_[token] = new_node;
+    }
+    else if (token != ONE_OR_ZERO) {
+      current_nodes.clear();
+    };
+    current_nodes.push_back(new_node);
+  }
+  for (auto node : current_nodes) {
+    node->valid_ = true;
+    node->tag_ = head;
+  }
 }
 
 ManualParser::~ManualParser() {}
