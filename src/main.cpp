@@ -23,7 +23,7 @@ int main() {
     return 0;
   }
 
-  ParseTree parse_tree;
+  ParseTree* parse_tree;
   auto parser = new Parser();
   err_info = parser->GetParseTree(tokens, parse_tree);
   delete(parser);

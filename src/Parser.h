@@ -5,13 +5,15 @@
 
 class Rule {
 public:
-  TokenTag head_;
-  std::vector<TokenTag> form_;
-
-  Rule(TokenTag head = DEFAULT, std::vector<TokenTag> form = {}) {
+  TokenTag result_;
+  NFANode *head_;
+  Rule(TokenTag result = TokenTag::DEFAULT, NFANode *head) {
+    result_ = result;
     head_ = head;
-    form_ = form;
   }
+  bool operator < (const Rule &b) const {
+    return head_ < b.head_;
+  } 
 };
 
 class ParseTree {
@@ -31,7 +33,7 @@ class Parser {
 public:
   Parser() {}
   ~Parser() {}
-  virtual std::string GetParseTree(const std::vector<Token> &tokens, ParseTree &parse_tree) {
+  virtual std::string GetParseTree(const std::vector<Token> &tokens, ParseTree* &parse_tree) {
     return "";
   }
 
@@ -41,8 +43,8 @@ class ManualParser : public Parser {
 public:
   ManualParser();
   ~ManualParser();
-  std::string GetParseTree(const std::vector<Token> &tokens, ParseTree &parse_tree) final;
+  std::string GetParseTree(const std::vector<Token> &tokens, ParseTree* &parse_tree) final;
   void AddRule(TokenTag head, std::vector<TokenTag> form);
 
-  std::vector<Rule *> rules_;
+  std::vector<Rule> rules_;
 };
