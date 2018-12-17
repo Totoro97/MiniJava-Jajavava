@@ -1,5 +1,6 @@
 #include "Parser.h"
 
+#include <algorithm>
 #include <iostream>
 #include <list>
 #include <set>
@@ -67,9 +68,9 @@ void ManualParser::AddRule(TokenTag head, std::vector<TokenTag> form) {
     if (judge_token == MANY_OR_ZERO) {
       new_node->nex_[token] = new_node;
     }
-    else if (token != ONE_OR_ZERO) {
+    else if (judge_token != ONE_OR_ZERO) {
       current_nodes.clear();
-    };
+    }
     current_nodes.push_back(new_node);
   }
   for (auto node : current_nodes) {
@@ -90,19 +91,17 @@ void ManualParser::Enclosure(std::set<State> &wait_pool) {
     for (const auto &state : wait_pool) {
       for (int i = TokenTag::DEFAULT; i < TokenTag::END; i++) {
         if (state.node->nex_[i] != nullptr) {
-          bool has_next = false;
           auto tmp_node = state.node->nex_[i];
-          for (int j = TokenTag::DEFAULT; i < TokenTag::END; j++) {
+          for (int j = TokenTag::DEFAULT; j < TokenTag::END; j++) {
             if (tmp_node->nex_[j] != nullptr) {
-              has_next = true;
               for (auto new_node : NFAs_[i]) {
-                tmp.emplace(state.l, state.r, new_node, TokenTag(i), TokenTag(j));
+                tmp.emplace(state.r, state.r, new_node, TokenTag(i), TokenTag(j), new ParseTree(TokenTag(i), {}, ""));
               }
             }
           }
-          if (!has_next) {
+          if (tmp_node->valid_) {
             for (auto new_node : NFAs_[i]) {
-              tmp.emplace(state.l, state.r, new_node, TokenTag(i), state.follow);
+              tmp.emplace(state.r, state.r, new_node, TokenTag(i), state.follow, new ParseTree(TokenTag(i), {}, ""));
             }
           }
         }
@@ -119,22 +118,79 @@ void ManualParser::Enclosure(std::set<State> &wait_pool) {
 }
 
 std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTree* &parse_tree) {
-  std::set<State> wait_pool;
-  wait_pool.clear();
-  for (auto node : NFAs_[GOAL]) {
-    wait_pool.insert(State(0, 0, node, GOAL, DEFAULT));
+  std::set<State> wait_pool_0, wait_pool_1;
+  wait_pool_0.clear();
+  /*for (auto node : NFAs_[GOAL]) {
+    wait_pool_0.insert(State(0, 0, node, GOAL, DEFAULT, new ParseTree(GOAL, {}, "")));
+  }*/
+  for (auto node : NFAs_[STATEMENT]) {
+    wait_pool_0.insert(State(0, 0, node, STATEMENT, DEFAULT, new ParseTree(STATEMENT, {}, "")));
   }
-  Enclosure(wait_pool);
   std::vector<std::pair<ParseTree *, int> > st;
   st.clear();
   st.emplace_back(new ParseTree(DEFAULT, {}, ""), static_cast<int>(tokens.size()));
   for (int i = static_cast<int>(tokens.size()) - 1; i >= 0; i--) {
     const auto &token = tokens[i];
+    if (token.tag == COMMENT) {
+      continue;
+    }
     st.emplace_back(new ParseTree(token.tag, {}, token.chars), i);
   }
-  int now_pt = st.size() - 1;
-  while (st.size() > 1) {
-    for (auto iter = wait_pool.begin(); iter )
+  auto wait_pool = &wait_pool_0;
+  auto new_pool = &wait_pool_1;
+  while (st.size() > 0) {
+    int now_pt = st.size() - 1;
+    auto now_parse_tree = st[now_pt].first;
+    auto token = now_parse_tree->head_;
+    int current_pos = st[now_pt].second;
+    int next_pos = st[now_pt - 1].second;
+    Enclosure(*wait_pool);
+    std::cout << "wait_pool size = " << wait_pool->size() << std::endl;
+    std::cout << "Token = " << token << " " << now_parse_tree->content_ << std::endl;
+    new_pool->clear();
+    if (current_pos >= next_pos && st.size() > 1) {
+      std::cout << "fuck" << std::endl;
+      return "";
+    }
+    int num_reduce = 0;
+    for (const auto &state : *wait_pool) {
+      if (state.node->valid_ && state.follow == token) {
+        std::cout << "eat it! follow = " << state.follow << std::endl;
+        if (token == DEFAULT) {
+          parse_tree = state.parse_tree;
+          return "OK";
+        }
+        num_reduce++;
+        if (state.l >= state.r) {
+          std::cout << "fuck" << std::endl;
+        }
+        st.emplace_back(state.parse_tree, state.l);
+      } else {
+        new_pool->insert(state);
+      }
+    }
+    if (num_reduce > 1) {
+      std::cout << "Error!!!!!!" << std::endl;
+      return "Error";
+    }
+    if (num_reduce == 0) {
+      bool can_go_on = false;
+      for (const auto &state : *wait_pool) {
+        if (state.r == current_pos && state.node->nex_[token] != nullptr) {
+          new_pool->emplace(state.l, next_pos, state.node->nex_[token], state.result, state.follow, state.parse_tree);
+          state.parse_tree->sons_.push_back(now_parse_tree);
+          can_go_on = true;
+        } else {
+          new_pool->insert(state);
+        }
+      }
+      if (!can_go_on) {
+        return "Error";
+      }
+      std::cout <<"pop back" << std::endl;
+      st.pop_back();
+    }
+    std::swap(new_pool, wait_pool);
   }
   return "OK";
 }

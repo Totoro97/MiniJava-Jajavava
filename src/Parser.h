@@ -45,8 +45,10 @@ struct State {
   int l, r;
   NFANode *node;
   TokenTag result, follow;
-  State(int l = 0, int r = 0, NFANode *node = nullptr, TokenTag result = DEFAULT, TokenTag follow = DEFAULT) :
-          l(l), r(r), node(node), result(result), follow(follow) {}
+  ParseTree *parse_tree;
+  State(int l = 0, int r = 0, NFANode *node = nullptr,
+          TokenTag result = DEFAULT, TokenTag follow = DEFAULT, ParseTree *parse_tree = nullptr) :
+          l(l), r(r), node(node), result(result), follow(follow), parse_tree(parse_tree) {}
   bool operator < (const State &b) const {
     if (l != b.l) return l < b.l;
     if (r != b.r) return r < b.r;

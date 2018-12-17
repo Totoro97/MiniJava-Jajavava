@@ -7,6 +7,13 @@
 #include "Lexer.h"
 #include "Parser.h"
 
+void DrawParseTree(ParseTree *root, std::string sp) {
+  std::cout << sp << root->head_ << " " << root->content_ << std::endl;
+  for (auto son : root->sons_) {
+    DrawParseTree(son, sp + " ");
+  }
+};
+
 int main() {
   std::ifstream in_stream;
   in_stream.open("test.java", std::ios::in);
@@ -27,9 +34,11 @@ int main() {
   auto parser = new ManualParser();
   err_info = parser->GetParseTree(tokens, parse_tree);
   delete(parser);
-  if (err_info != std::string("")) {
+  if (err_info != std::string("OK")) {
     std::cout << err_info << std::endl;
     return 0;
+  } else {
+    DrawParseTree(parse_tree, "");
   }
   return 0;
 }
