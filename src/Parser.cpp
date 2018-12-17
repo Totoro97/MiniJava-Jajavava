@@ -1,15 +1,16 @@
 #include "Parser.h"
 
+#include <iostream>
 #include <list>
 #include <set>
 #include <stack>
 #include <vector>
 
 ManualParser::ManualParser() {
-
+  std::cout << "Construct Parser: Begin" << std::endl;
   AddRule(GOAL, { MAIN_CLASS, MANY_OR_ZERO, CLASS_DECLARATION });
   AddRule(MAIN_CLASS,
-          { CLASS, ID, LCUR, PUBLIC, VOID, MAIN, LB, STRING, LSQR, RSQR, ID, RB, LCUR, STATEMENT, RCUR, RCUR});
+          { CLASS, ID, LCUR, PUBLIC, STATIC, VOID, MAIN, LB, STRING, LSQR, RSQR, ID, RB, LCUR, STATEMENT, RCUR, RCUR});
   AddRule(CLASS_DECLARATION,
           { CLASS, ID, ONE_OR_ZERO, EXTENDS_IDENTIFIER, LCUR, MANY_OR_ZERO, VAR_DECLARATION,
             MANY_OR_ZERO, METHOD_DECLARATION, RCUR});
@@ -44,6 +45,7 @@ ManualParser::ManualParser() {
   AddRule(EXPRESSION, { NEW, ID, LB, RB });
   AddRule(EXPRESSION, { NT, EXPRESSION });
   AddRule(EXPRESSION, { LB, EXPRESSION, RB });
+  std::cout << "Construct Parser: Done" << std::endl;
 }
 
 void ManualParser::AddRule(TokenTag head, std::vector<TokenTag> form) {
@@ -52,7 +54,7 @@ void ManualParser::AddRule(TokenTag head, std::vector<TokenTag> form) {
   for (auto iter = form.begin(); iter != form.end(); iter++) {
     auto judge_token = *iter;
     auto token = *iter;
-    if (judge_token == MANY_OR_ZERO || ONE_OR_ZERO) {
+    if (judge_token == MANY_OR_ZERO || judge_token == ONE_OR_ZERO) {
       token = *(++iter);
     }
     auto new_node = new NFANode();
@@ -84,6 +86,7 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
     paths.back().push_back(rule);
   }
   int n = tokens.size();
+  std::cout << "n = " << n << std::endl;
   std::vector<ParseTree *> st = { new ParseTree(DEFAULT, {}, "") };
   for (int i = n - 1; i >= 0; i--) {
     Token token = tokens[i];
@@ -99,6 +102,7 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
   TokenTag ok_tag = DEFAULT;
   bool last_failure = false;
   while (st.size() > 2) {
+    std::cout << "st size = " << st.size() << " now token = " << st[now_pt]->head_ << std::endl;
     ParseTree *node = st[now_pt];
     std::list<Rule> rules = paths.back();
     for (auto iter = rules.begin(); iter != rules.end(); ) {
@@ -137,6 +141,8 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
       }
     }
     else {
+      paths.pop_back();
+      paths.push_back(rules);
       now_pt--;
       last_failure = false;
     }

@@ -112,8 +112,8 @@ ManualLexer::ManualLexer() {
   AddPath(head, std::string("}"), RCUR);
   AddPath(head, std::string("["), LSQR);
   AddPath(head, std::string("]"), RSQR);
-  AddPath(head, std::string(")"), LB);
-  AddPath(head, std::string("("), RB);
+  AddPath(head, std::string("("), LB);
+  AddPath(head, std::string(")"), RB);
   AddPath(head, std::string("."), DOT);
   AddPath(head, std::string("+"), PLUS);
   AddPath(head, std::string("-"), MINUS);

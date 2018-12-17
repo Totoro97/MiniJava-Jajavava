@@ -7,13 +7,13 @@ class Rule {
 public:
   TokenTag result_;
   NFANode *head_;
-  Rule(TokenTag result = TokenTag::DEFAULT, NFANode *head) {
+  Rule(TokenTag result = TokenTag::DEFAULT, NFANode *head = nullptr) {
     result_ = result;
     head_ = head;
   }
   bool operator < (const Rule &b) const {
     return head_ < b.head_;
-  } 
+  }
 };
 
 class ParseTree {
