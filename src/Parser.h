@@ -1,5 +1,7 @@
 #include "Lexer.h"
 
+#include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -39,12 +41,28 @@ public:
 
 };
 
+struct State {
+  int l, r;
+  NFANode *node;
+  TokenTag result, follow;
+  State(int l = 0, int r = 0, NFANode *node = nullptr, TokenTag result = DEFAULT, TokenTag follow = DEFAULT) :
+          l(l), r(r), node(node), result(result), follow(follow) {}
+  bool operator < (const State &b) const {
+    if (l != b.l) return l < b.l;
+    if (r != b.r) return r < b.r;
+    if (node != b.node) return node < b.node;
+    if (result != b.result) return result < b.result;
+    return follow < b.follow;
+  }
+};
+
 class ManualParser : public Parser {
 public:
   ManualParser();
   ~ManualParser();
   std::string GetParseTree(const std::vector<Token> &tokens, ParseTree* &parse_tree) final;
   void AddRule(TokenTag head, std::vector<TokenTag> form);
-
   std::vector<Rule> rules_;
+  std::vector<NFANode *> NFAs_[TokenTag::END];
+  void Enclosure(std::set<State> &wait_pool);
 };

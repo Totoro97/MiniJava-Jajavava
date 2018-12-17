@@ -45,6 +45,9 @@ ManualParser::ManualParser() {
   AddRule(EXPRESSION, { NEW, ID, LB, RB });
   AddRule(EXPRESSION, { NT, EXPRESSION });
   AddRule(EXPRESSION, { LB, EXPRESSION, RB });
+
+  std::cout << "Add Rule: Done" << std::endl;
+
   std::cout << "Construct Parser: Done" << std::endl;
 }
 
@@ -75,11 +78,68 @@ void ManualParser::AddRule(TokenTag head, std::vector<TokenTag> form) {
   }
   
   rules_.emplace_back(head, init_node);
+  NFAs_[head].push_back(init_node);
 }
 
 ManualParser::~ManualParser() {}
 
+void ManualParser::Enclosure(std::set<State> &wait_pool) {
+  while (true) {
+    std::set<State> tmp;
+    tmp.clear();
+    for (const auto &state : wait_pool) {
+      for (int i = TokenTag::DEFAULT; i < TokenTag::END; i++) {
+        if (state.node->nex_[i] != nullptr) {
+          bool has_next = false;
+          auto tmp_node = state.node->nex_[i];
+          for (int j = TokenTag::DEFAULT; i < TokenTag::END; j++) {
+            if (tmp_node->nex_[j] != nullptr) {
+              has_next = true;
+              for (auto new_node : NFAs_[i]) {
+                tmp.emplace(state.l, state.r, new_node, TokenTag(i), TokenTag(j));
+              }
+            }
+          }
+          if (!has_next) {
+            for (auto new_node : NFAs_[i]) {
+              tmp.emplace(state.l, state.r, new_node, TokenTag(i), state.follow);
+            }
+          }
+        }
+      }
+    }
+    auto past_size = wait_pool.size();
+    for (const auto &new_state : tmp) {
+      wait_pool.insert(new_state);
+    }
+    if (past_size == wait_pool.size()) {
+      break;
+    }
+  }
+}
+
 std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTree* &parse_tree) {
+  std::set<State> wait_pool;
+  wait_pool.clear();
+  for (auto node : NFAs_[GOAL]) {
+    wait_pool.insert(State(0, 0, node, GOAL, DEFAULT));
+  }
+  Enclosure(wait_pool);
+  std::vector<std::pair<ParseTree *, int> > st;
+  st.clear();
+  st.emplace_back(new ParseTree(DEFAULT, {}, ""), static_cast<int>(tokens.size()));
+  for (int i = static_cast<int>(tokens.size()) - 1; i >= 0; i--) {
+    const auto &token = tokens[i];
+    st.emplace_back(new ParseTree(token.tag, {}, token.chars), i);
+  }
+  int now_pt = st.size() - 1;
+  while (st.size() > 1) {
+    for (auto iter = wait_pool.begin(); iter )
+  }
+  return "OK";
+}
+
+/*std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTree* &parse_tree) {
   std::vector<std::list<Rule> > paths;
   paths.emplace_back();
   for (const auto &rule : rules_) {
@@ -149,4 +209,4 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
   }
   parse_tree = st.back();
   return "ok";
-}
+}*/
