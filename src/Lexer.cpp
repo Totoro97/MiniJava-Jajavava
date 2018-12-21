@@ -1,4 +1,5 @@
 #include "Lexer.h"
+#include <algorithm>
 #include <cstring>
 #include <iostream>
 #include <vector>
@@ -177,6 +178,9 @@ std::string ManualLexer::GetTokens(std::ifstream &in_stream, std::vector<Token> 
   TokenTag ans_tag;
   for (int i = 0; i < n; ) {
     int v = static_cast<int>(s[i]);
+    std::vector<NFANode *> past_nodes;
+    past_nodes.resize(nodes.size());
+    std::copy_n(nodes.begin(), nodes.size(), past_nodes.begin());
     for (int j = 0; j < nodes.size(); j++) {
       if (nodes[j] == nullptr)
         continue;
@@ -190,7 +194,9 @@ std::string ManualLexer::GetTokens(std::ifstream &in_stream, std::vector<Token> 
     }
     if (res == 0) {
       if (past == last_valid + 1) {
-        return std::string("Error");
+        int tmp = std::max(0, i - 10);
+        std::string error_info = "Lexer Error at: " + std::string(s + tmp, i - tmp);
+        return error_info;
       }
       while(s[past] == '\n' || s[past] == '\r' || s[past] == ' ' || s[past] == '\t')
         past++;
