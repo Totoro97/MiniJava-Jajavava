@@ -66,5 +66,7 @@ public:
   void AddRule(TokenTag head, std::vector<TokenTag> form);
   std::vector<Rule> rules_;
   std::vector<NFANode *> NFAs_[TokenTag::END];
+  std::set<TokenTag> termis_[TokenTag::END];
   void Enclosure(std::set<State> &wait_pool);
+  void PrintContent(ParseTree *parse_tree);
 };

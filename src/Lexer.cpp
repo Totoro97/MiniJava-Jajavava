@@ -61,11 +61,11 @@ ManualLexer::ManualLexer() {
 
   // INT
   head = new NFANode();
-  auto int_tmp_0 = new NFANode();
+  // auto int_tmp_0 = new NFANode();
   auto int_tmp_1 = new NFANode();
-  AddEdge(head, int_tmp_0, '-', '-');
+  // AddEdge(head, int_tmp_0, '-', '-');
   AddEdge(head, int_tmp_1, '0', '9');
-  AddEdge(int_tmp_0, int_tmp_1, '0', '9');
+  // AddEdge(int_tmp_0, int_tmp_1, '0', '9');
   AddEdge(int_tmp_1, int_tmp_1, '0', '9');
   AddWhiteSpaceEdge(head, head);
   int_tmp_1->valid_ = true;
@@ -115,12 +115,12 @@ ManualLexer::ManualLexer() {
   AddPath(head, std::string("("), LB);
   AddPath(head, std::string(")"), RB);
   AddPath(head, std::string("."), DOT);
-  AddPath(head, std::string("+"), PLUS);
-  AddPath(head, std::string("-"), MINUS);
   AddPath(head, std::string("&&"), BIOP);
   AddPath(head, std::string("*"), BIOP);
   AddPath(head, std::string("<"), BIOP);
   AddPath(head, std::string(">"), BIOP);
+  AddPath(head, std::string("+"), BIOP);
+  AddPath(head, std::string("-"), BIOP);
   AddPath(head, std::string("="), EQ);
   AddPath(head, std::string("!"), NT);
   heads_.push_back(head);

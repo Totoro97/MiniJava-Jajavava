@@ -20,12 +20,12 @@ ManualParser::ManualParser() {
           { PUBLIC, TYPE, ID, LB, ONE_OR_ZERO, TYPE_ID_MANY, RB, LCUR, MANY_OR_ZERO, VAR_DECLARATION,
             MANY_OR_ZERO, STATEMENT, RETURN, EXPRESSION, SEMI, RCUR});
   AddRule(TYPE_ID_MANY, { TYPE, ID, MANY_OR_ZERO, DOT_TYPE_ID });
-  AddRule(DOT_TYPE_ID, { DOT, TYPE, ID });
+  AddRule(DOT_TYPE_ID, { COMMA, TYPE, ID });
   AddRule(TYPE, { INT, LSQR, RSQR });
   AddRule(TYPE, { BOOLEAN });
   AddRule(TYPE, { INT });
   AddRule(TYPE, { ID });
-  AddRule(STATEMENT, { LCUR, ONE_OR_ZERO, STATEMENT, RCUR });
+  AddRule(STATEMENT, { LCUR, MANY_OR_ZERO, STATEMENT, RCUR });
   AddRule(STATEMENT, { IF, LB, EXPRESSION, RB, STATEMENT, ELSE, STATEMENT});
   AddRule(STATEMENT, { WHILE, LB, EXPRESSION, RB, STATEMENT });
   AddRule(STATEMENT, { PRINT, LB, EXPRESSION, RB, SEMI});
@@ -36,7 +36,7 @@ ManualParser::ManualParser() {
   AddRule(EXPRESSION, { EXPRESSION, DOT, LENGTH });
   AddRule(EXPRESSION, { EXPRESSION, DOT, ID, LB, ONE_OR_ZERO, PARAS, RB});
   AddRule(PARAS, { EXPRESSION, MANY_OR_ZERO, DOT_EXPRESSION });
-  AddRule(DOT_EXPRESSION, { DOT, EXPRESSION });
+  AddRule(DOT_EXPRESSION, { COMMA, EXPRESSION });
   AddRule(EXPRESSION, { INT_LITERAL });
   AddRule(EXPRESSION, { TRUE });
   AddRule(EXPRESSION, { FALSE });
@@ -80,9 +80,36 @@ void ManualParser::AddRule(TokenTag head, std::vector<TokenTag> form) {
   
   rules_.emplace_back(head, init_node);
   NFAs_[head].push_back(init_node);
+
+  for (int i = 0; i < TokenTag::END; i++) {
+    if (NFAs_[i].empty()) {
+      termis_[i].insert(TokenTag(i));
+    }
+  }
+  while (true) {
+    bool no_change = true;
+    for (int i = 0; i < TokenTag::END; i++) {
+      auto current_size = termis_[i].size();
+      for (auto node : NFAs_[i]) {
+        for (int j = 0; j < TokenTag::END; j++) {
+          if (node->nex_[j]) {
+            for (auto token : termis_[j]) {
+              termis_[i].insert(token);
+            }
+          }
+        }
+      }
+      if (current_size != termis_[i].size()) {
+        no_change = false;
+      }
+    }
+    if (no_change) {
+      break;
+    }
+  }
 }
 
-ManualParser::~ManualParser() {}
+ManualParser::~ManualParser() = default;
 
 void ManualParser::Enclosure(std::set<State> &wait_pool) {
   while (true) {
@@ -95,7 +122,9 @@ void ManualParser::Enclosure(std::set<State> &wait_pool) {
           for (int j = TokenTag::DEFAULT; j < TokenTag::END; j++) {
             if (tmp_node->nex_[j] != nullptr) {
               for (auto new_node : NFAs_[i]) {
-                tmp.emplace(state.r, state.r, new_node, TokenTag(i), TokenTag(j), new ParseTree(TokenTag(i), {}, ""));
+                for (auto termi : termis_[j]) {
+                  tmp.emplace(state.r, state.r, new_node, TokenTag(i), TokenTag(termi), new ParseTree(TokenTag(i), {}, ""));
+                }
               }
             }
           }
@@ -117,15 +146,22 @@ void ManualParser::Enclosure(std::set<State> &wait_pool) {
   }
 }
 
+void ManualParser::PrintContent(ParseTree *parse_tree) {
+  std::cout << parse_tree->content_;
+  for (auto son : parse_tree->sons_) {
+    PrintContent(son);
+  }
+}
+
 std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTree* &parse_tree) {
   std::set<State> wait_pool_0, wait_pool_1;
   wait_pool_0.clear();
-  /*for (auto node : NFAs_[GOAL]) {
+  for (auto node : NFAs_[GOAL]) {
     wait_pool_0.insert(State(0, 0, node, GOAL, DEFAULT, new ParseTree(GOAL, {}, "")));
-  }*/
-  for (auto node : NFAs_[STATEMENT]) {
-    wait_pool_0.insert(State(0, 0, node, STATEMENT, DEFAULT, new ParseTree(STATEMENT, {}, "")));
   }
+  /*for (auto node : NFAs_[STATEMENT]) {
+    wait_pool_0.insert(State(0, 0, node, STATEMENT, DEFAULT, new ParseTree(STATEMENT, {}, "")));
+  }*/
   std::vector<std::pair<ParseTree *, int> > st;
   st.clear();
   st.emplace_back(new ParseTree(DEFAULT, {}, ""), static_cast<int>(tokens.size()));
@@ -143,7 +179,8 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
     auto now_parse_tree = st[now_pt].first;
     auto token = now_parse_tree->head_;
     int current_pos = st[now_pt].second;
-    int next_pos = st[now_pt - 1].second;
+    auto next_token = now_pt > 0 ? st[now_pt - 1].first->head_ : DEFAULT;
+    int next_pos = now_pt > 0 ? st[now_pt - 1].second : current_pos;
     Enclosure(*wait_pool);
     std::cout << "wait_pool size = " << wait_pool->size() << std::endl;
     std::cout << "Token = " << token << " " << now_parse_tree->content_ << std::endl;
@@ -154,9 +191,12 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
     }
     int num_reduce = 0;
     for (const auto &state : *wait_pool) {
-      if (state.node->valid_ && state.follow == token) {
+      if (state.node->valid_ && state.follow == token && state.r == current_pos) {
         std::cout << "eat it! follow = " << state.follow << std::endl;
+        PrintContent(state.parse_tree);
+        std::cout << std::endl;
         if (token == DEFAULT) {
+          std::cout << "yes" << std::endl;
           parse_tree = state.parse_tree;
           return "OK";
         }
@@ -175,13 +215,24 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
     }
     if (num_reduce == 0) {
       bool can_go_on = false;
+      auto LookForward = [this](NFANode *node, TokenTag token, TokenTag follow) {
+        for (int i = 0; i < TokenTag::END; i++) {
+          if (node->nex_[i] == nullptr) {
+            continue;
+          }
+          if (termis_[i].find(token) != termis_[i].end()) {
+            return true;
+          }
+        }
+        return (node->valid_ && token == follow);
+      };
+
       for (const auto &state : *wait_pool) {
-        if (state.r == current_pos && state.node->nex_[token] != nullptr) {
+        if (state.r == current_pos && state.node->nex_[token] != nullptr &&
+          LookForward(state.node->nex_[token], next_token, state.follow)) {
           new_pool->emplace(state.l, next_pos, state.node->nex_[token], state.result, state.follow, state.parse_tree);
           state.parse_tree->sons_.push_back(now_parse_tree);
           can_go_on = true;
-        } else {
-          new_pool->insert(state);
         }
       }
       if (!can_go_on) {
