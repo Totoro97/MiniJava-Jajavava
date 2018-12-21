@@ -206,15 +206,20 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
           std::cout << "fuck" << std::endl;
         }
         st.emplace_back(state.parse_tree, state.l);
-      } else {
-        new_pool->insert(state);
       }
     }
     if (num_reduce > 1) {
       std::cout << "Error!!!!!!" << std::endl;
       return "Error";
     }
-    if (num_reduce == 0) {
+    else if (num_reduce == 1) {
+      for (const auto &state : *wait_pool) {
+        if (state.r <= st.back().second) {
+          new_pool->insert(state);
+        }
+      }
+    }
+    else if (num_reduce == 0) {
       bool can_go_on = false;
       auto LookForward = [this](NFANode *node, TokenTag token, TokenTag follow) {
         for (int i = 0; i < TokenTag::END; i++) {
@@ -234,6 +239,8 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
           new_pool->emplace(state.l, next_pos, state.node->nex_[token], state.result, state.follow, state.parse_tree);
           state.parse_tree->sons_.push_back(now_parse_tree);
           can_go_on = true;
+        } else {
+          new_pool->insert(state);
         }
       }
       if (!can_go_on) {
