@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <iostream>
 #include <list>
+#include <queue>
 #include <set>
 #include <stack>
 #include <vector>
@@ -20,8 +21,8 @@ ManualParser::ManualParser() {
   AddRule(METHOD_DECLARATION,
           { PUBLIC, TYPE, ID, LB, ONE_OR_ZERO, TYPE_ID_MANY, RB, LCUR, MANY_OR_ZERO, VAR_DECLARATION,
             MANY_OR_ZERO, STATEMENT, RETURN, EXPRESSION, SEMI, RCUR});
-  AddRule(TYPE_ID_MANY, { TYPE, ID, MANY_OR_ZERO, DOT_TYPE_ID });
-  AddRule(DOT_TYPE_ID, { COMMA, TYPE, ID });
+  AddRule(TYPE_ID_MANY, { TYPE, ID, MANY_OR_ZERO, COMMA_TYPE_ID });
+  AddRule(COMMA_TYPE_ID, { COMMA, TYPE, ID });
   AddRule(TYPE, { INT, LSQR, RSQR });
   AddRule(TYPE, { BOOLEAN });
   AddRule(TYPE, { INT });
@@ -36,8 +37,8 @@ ManualParser::ManualParser() {
   AddRule(EXPRESSION, { EXPRESSION, LSQR, EXPRESSION, RSQR });
   AddRule(EXPRESSION, { EXPRESSION, DOT, LENGTH });
   AddRule(EXPRESSION, { EXPRESSION, DOT, ID, LB, ONE_OR_ZERO, PARAS, RB});
-  AddRule(PARAS, { EXPRESSION, MANY_OR_ZERO, DOT_EXPRESSION });
-  AddRule(DOT_EXPRESSION, { COMMA, EXPRESSION });
+  AddRule(PARAS, { EXPRESSION, MANY_OR_ZERO, COMMA_EXPRESSION });
+  AddRule(COMMA_EXPRESSION, { COMMA, EXPRESSION });
   AddRule(EXPRESSION, { INT_LITERAL });
   AddRule(EXPRESSION, { TRUE });
   AddRule(EXPRESSION, { FALSE });
@@ -53,7 +54,7 @@ ManualParser::ManualParser() {
   std::cout << "Construct Parser: Done" << std::endl;
 }
 
-void ManualParser::AddRule(TokenTag head, std::vector<TokenTag> form) {
+void ManualParser::AddRule(TokenTag head, std::vector<TokenTag> form, std::string comment) {
   auto init_node = new NFANode();
   std::vector<NFANode *> current_nodes = { init_node };
   for (auto iter = form.begin(); iter != form.end(); iter++) {
@@ -79,7 +80,7 @@ void ManualParser::AddRule(TokenTag head, std::vector<TokenTag> form) {
     node->tag_ = head;
   }
   
-  rules_.emplace_back(head, init_node);
+  rules_.emplace_back(head, init_node, comment);
   NFAs_[head].push_back(init_node);
 
   for (int i = 0; i < TokenTag::END; i++) {
@@ -183,8 +184,10 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
     auto next_token = now_pt > 0 ? st[now_pt - 1].first->head_ : DEFAULT;
     int next_pos = now_pt > 0 ? st[now_pt - 1].second : current_pos;
     Enclosure(*wait_pool);
-    std::cout << "wait_pool size = " << wait_pool->size() << std::endl;
-    std::cout << "Token = " << token << " " << now_parse_tree->content_ << std::endl;
+    // DEBUG INFO
+    // std::cout << "wait_pool size = " << wait_pool->size() << std::endl;
+    // std::cout << "Token = " << token2str[token] << " " << now_parse_tree->content_ << std::endl;
+    // END DEBUG INFO
     new_pool->clear();
     if (current_pos >= next_pos && st.size() > 1) {
       std::cout << "fuck" << std::endl;
@@ -193,22 +196,21 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
     int num_reduce = 0;
     for (const auto &state : *wait_pool) {
       if (state.node->valid_ && state.follow == token && state.r == current_pos) {
-        std::cout << "Find a reduce-able grammar." << std::endl;
+        // std::cout << "Find a reduce-able grammar." << std::endl;
         num_reduce++;
       }
     }
     if (num_reduce == 1) {
       for (const auto &state : *wait_pool) {
         if (state.node->valid_ && state.follow == token && state.r == current_pos) {
-          std::cout << "eat it! follow = " << state.follow << std::endl;
-          PrintContent(state.parse_tree);
-          std::cout << std::endl;
-          if (token == DEFAULT) {
+          // std::cout << "eat it! follow = " << state.follow << std::endl;
+          // PrintContent(state.parse_tree);
+          // std::cout << std::endl;
+          if (state.result == GOAL) {
             std::cout << "yes" << std::endl;
             parse_tree = state.parse_tree;
             return "OK";
           }
-          num_reduce++;
           if (state.l >= state.r) {
             std::cout << "fuck" << std::endl;
           }
@@ -222,8 +224,19 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
       }
     }
     else if (num_reduce > 1) {
-      std::cout << "Error: have differenct interpretions." << std::endl;
-      
+      // Have different interpretions.
+      std::cout << "Error: have different interpretions." << std::endl;
+      int counter = 0;
+      for (const auto &state : *wait_pool) {
+        if (state.node->valid_ && state.follow == token && state.r == current_pos) {
+          std::cout << "Interpretion " << ++counter << ":" << std::endl;
+          std::cout << token2str[state.result] << " <----";
+          for (auto son : state.parse_tree->sons_) {
+            std::cout << " " << token2str[son->head_];
+          }
+          std::cout << std::endl;
+        }
+      }
       return "Error";
     }
     else if (num_reduce == 0) {
@@ -251,9 +264,32 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
         }
       }
       if (!can_go_on) {
+        std::cout << "Error: Can't accept any new token" << std::endl;
+        auto MinDistanceToValid = [](const State &state) {
+          std::queue<std::pair<NFANode *, int> > que;
+          que.push(std::make_pair(state.node, 0));
+          while (!que.empty()) {
+            auto node = que.front().first;
+            int dis = que.front().second;
+            que.pop();
+            if (node->valid_) {
+              return dis;
+            }
+            for (int i = 0; i < END; i++) {
+              if (node->nex_[i] != nullptr) {
+                que.push(std::make_pair(node->nex_[i], dis + 1));
+              }
+            }
+          }
+          return -1;
+        };
+        for (const auto &state : *wait_pool) {
+          int dis = MinDistanceToValid(state);
+          if (dis == -1) continue;
+        }
         return "Error";
       }
-      std::cout <<"pop back" << std::endl;
+      // std::cout <<"pop back" << std::endl;
       st.pop_back();
     }
     std::swap(new_pool, wait_pool);

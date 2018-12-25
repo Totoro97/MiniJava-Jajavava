@@ -9,9 +9,11 @@ class Rule {
 public:
   TokenTag result_;
   NFANode *head_;
-  Rule(TokenTag result = TokenTag::DEFAULT, NFANode *head = nullptr) {
+  std::string comment_;
+  Rule(TokenTag result = TokenTag::DEFAULT, NFANode *head = nullptr, std::string comment = "") {
     result_ = result;
     head_ = head;
+    comment_ = comment;
   }
   bool operator < (const Rule &b) const {
     return head_ < b.head_;
@@ -63,7 +65,7 @@ public:
   ManualParser();
   ~ManualParser();
   std::string GetParseTree(const std::vector<Token> &tokens, ParseTree* &parse_tree) final;
-  void AddRule(TokenTag head, std::vector<TokenTag> form);
+  void AddRule(TokenTag head, std::vector<TokenTag> form, std::string comment = "");
   std::vector<Rule> rules_;
   std::vector<NFANode *> NFAs_[TokenTag::END];
   std::set<TokenTag> termis_[TokenTag::END];

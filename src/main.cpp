@@ -8,7 +8,7 @@
 #include "Parser.h"
 
 void DrawParseTree(ParseTree *root, std::string sp) {
-  std::cout << sp << root->head_ << " " << root->content_ << std::endl;
+  std::cout << sp << token2str[root->head_] << " " << root->content_ << std::endl;
   for (auto son : root->sons_) {
     DrawParseTree(son, sp + " ");
   }
@@ -22,9 +22,9 @@ int main() {
   auto err_info = lexer->GetTokens(in_stream, tokens);
   delete(lexer);
   in_stream.close();
-  for (auto &token : tokens) {
+  /*for (auto &token : tokens) {
     std::cout << token.tag << " " << token.chars << std::endl;
-  }
+  }*/
   if (err_info != std::string("OK")) {
     std::cout << err_info << std::endl;
     return 0;
