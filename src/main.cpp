@@ -30,15 +30,16 @@ int main() {
     return 0;
   }
 
-  ParseTree* parse_tree;
+  ParseTree *parse_tree, *abstract_parse_tree;
   auto parser = new ManualParser();
   err_info = parser->GetParseTree(tokens, parse_tree);
+  abstract_parse_tree = parser->FilterParseTree(parse_tree);
   delete(parser);
   if (err_info != std::string("OK")) {
     std::cout << err_info << std::endl;
     return 0;
   } else {
-    DrawParseTree(parse_tree, "");
+    DrawParseTree(abstract_parse_tree, "");
   }
   return 0;
 }

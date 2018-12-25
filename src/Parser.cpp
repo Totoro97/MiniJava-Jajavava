@@ -346,6 +346,41 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
   return "OK";
 }
 
+ParseTree* ManualParser::FilterParseTree(ParseTree* node) {
+  auto new_node = new ParseTree();
+  if (node->sons_.empty() || node->rule_ == nullptr) {
+    new_node->head_ = node->head_;
+    new_node->content_ = node->content_;
+    return new_node;
+  }
+  if (node->rule_->abstract_tag_ == DEFAULT) {
+    new_node->head_ = node->head_;
+  } else {
+    new_node->head_ = node->rule_->abstract_tag_;
+  }
+  new_node->content_ = node->content_;
+  auto iter = node->rule_->filter_.begin();
+  auto just_tmp = [](TokenTag tag) {
+    return (tag == COMMA_TYPE_ID || tag == COMMA_EXPRESSION);
+  };
+  for (const auto &son : node->sons_) {
+    if (iter != node->rule_->filter_.end() && *iter == son->head_) {
+      iter++;
+      continue;
+    }
+    auto tmp_node = FilterParseTree(son);
+    if (just_tmp(son->head_)) {
+      for (const auto &new_son : tmp_node->sons_) {
+        new_node->sons_.push_back(new_son);
+      }
+    }
+    else {
+      new_node->sons_.push_back(tmp_node);
+    }
+  }
+  return new_node;
+}
+
 /*std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTree* &parse_tree) {
   std::vector<std::list<Rule> > paths;
   paths.emplace_back();
