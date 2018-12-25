@@ -10,44 +10,47 @@
 
 ManualParser::ManualParser() {
   std::cout << "Construct Parser: Begin" << std::endl;
-  AddRule(GOAL, { MAIN_CLASS, MANY_OR_ZERO, CLASS_DECLARATION });
+  AddRule(GOAL, { MAIN_CLASS, MANY_OR_ZERO, CLASS_DECLARATION }, {});
   AddRule(MAIN_CLASS,
-          { CLASS, ID, LCUR, PUBLIC, STATIC, VOID, MAIN, LB, STRING, LSQR, RSQR, ID, RB, LCUR, STATEMENT, RCUR, RCUR});
+          { CLASS, ID, LCUR, PUBLIC, STATIC, VOID, MAIN, LB, STRING, LSQR, RSQR, ID, RB, LCUR, STATEMENT, RCUR, RCUR},
+          { CLASS, LCUR, PUBLIC, STATIC, VOID, MAIN, LB, STRING, LSQR, RSQR, RB, LCUR, RCUR, RCUR});
   AddRule(CLASS_DECLARATION,
           { CLASS, ID, ONE_OR_ZERO, EXTENDS_IDENTIFIER, LCUR, MANY_OR_ZERO, VAR_DECLARATION,
-            MANY_OR_ZERO, METHOD_DECLARATION, RCUR});
-  AddRule(EXTENDS_IDENTIFIER, { EXTENDS, ID });
-  AddRule(VAR_DECLARATION, { TYPE, ID, SEMI });
+            MANY_OR_ZERO, METHOD_DECLARATION, RCUR},
+          { CLASS, LCUR, RCUR });
+  AddRule(EXTENDS_IDENTIFIER, { EXTENDS, ID }, {});
+  AddRule(VAR_DECLARATION, { TYPE, ID, SEMI }, { SEMI });
   AddRule(METHOD_DECLARATION,
           { PUBLIC, TYPE, ID, LB, ONE_OR_ZERO, TYPE_ID_MANY, RB, LCUR, MANY_OR_ZERO, VAR_DECLARATION,
-            MANY_OR_ZERO, STATEMENT, RETURN, EXPRESSION, SEMI, RCUR});
-  AddRule(TYPE_ID_MANY, { TYPE, ID, MANY_OR_ZERO, COMMA_TYPE_ID });
-  AddRule(COMMA_TYPE_ID, { COMMA, TYPE, ID });
-  AddRule(TYPE, { INT, LSQR, RSQR });
-  AddRule(TYPE, { BOOLEAN });
-  AddRule(TYPE, { INT });
-  AddRule(TYPE, { ID });
-  AddRule(STATEMENT, { LCUR, MANY_OR_ZERO, STATEMENT, RCUR });
-  AddRule(STATEMENT, { IF, LB, EXPRESSION, RB, STATEMENT, ELSE, STATEMENT});
-  AddRule(STATEMENT, { WHILE, LB, EXPRESSION, RB, STATEMENT });
-  AddRule(STATEMENT, { PRINT, LB, EXPRESSION, RB, SEMI});
-  AddRule(STATEMENT, { ID, EQ, EXPRESSION, SEMI });
-  AddRule(STATEMENT, { ID, LSQR, EXPRESSION, RSQR, EQ, EXPRESSION, SEMI });
-  AddRule(EXPRESSION, { EXPRESSION, BIOP, EXPRESSION });
-  AddRule(EXPRESSION, { EXPRESSION, LSQR, EXPRESSION, RSQR });
-  AddRule(EXPRESSION, { EXPRESSION, DOT, LENGTH });
-  AddRule(EXPRESSION, { EXPRESSION, DOT, ID, LB, ONE_OR_ZERO, PARAS, RB});
-  AddRule(PARAS, { EXPRESSION, MANY_OR_ZERO, COMMA_EXPRESSION });
-  AddRule(COMMA_EXPRESSION, { COMMA, EXPRESSION });
-  AddRule(EXPRESSION, { INT_LITERAL });
-  AddRule(EXPRESSION, { TRUE });
-  AddRule(EXPRESSION, { FALSE });
-  AddRule(EXPRESSION, { ID });
-  AddRule(EXPRESSION, { THIS });
-  AddRule(EXPRESSION, { NEW, INT, LSQR, EXPRESSION, RSQR });
-  AddRule(EXPRESSION, { NEW, ID, LB, RB });
-  AddRule(EXPRESSION, { NT, EXPRESSION });
-  AddRule(EXPRESSION, { LB, EXPRESSION, RB });
+            MANY_OR_ZERO, STATEMENT, RETURN, EXPRESSION, SEMI, RCUR},
+            { PUBLIC, LB, RB, LCUR, RETURN, SEMI, RCUR });
+  AddRule(TYPE_ID_MANY, { TYPE, ID, MANY_OR_ZERO, COMMA_TYPE_ID }, {});
+  AddRule(COMMA_TYPE_ID, { COMMA, TYPE, ID }, {});
+  AddRule(TYPE, { INT, LSQR, RSQR }, {});
+  AddRule(TYPE, { BOOLEAN }, {});
+  AddRule(TYPE, { INT }, {});
+  AddRule(TYPE, { ID }, {});
+  AddRule(STATEMENT, { LCUR, MANY_OR_ZERO, STATEMENT, RCUR }, { LCUR, RCUR }, STATEMENT_S);
+  AddRule(STATEMENT, { IF, LB, EXPRESSION, RB, STATEMENT, ELSE, STATEMENT}, { IF, LB, RB, ELSE }, STATEMENT_IF_ELSE);
+  AddRule(STATEMENT, { WHILE, LB, EXPRESSION, RB, STATEMENT }, { LB, RB }, STATEMENT_WHILE);
+  AddRule(STATEMENT, { PRINT, LB, EXPRESSION, RB, SEMI }, { LB, RB, SEMI }, STATEMENT_PRINT);
+  AddRule(STATEMENT, { ID, EQ, EXPRESSION, SEMI }, { EQ, SEMI }, STATEMENT_EQ);
+  AddRule(STATEMENT, { ID, LSQR, EXPRESSION, RSQR, EQ, EXPRESSION, SEMI }, { LSQR, RSQR, SEMI }, STATEMENT_ARRAY);
+  AddRule(EXPRESSION, { EXPRESSION, BIOP, EXPRESSION }, {}, EXPRESSION_BIOP);
+  AddRule(EXPRESSION, { EXPRESSION, LSQR, EXPRESSION, RSQR }, { LSQR, RSQR }, EXPRESSION_INDEX);
+  AddRule(EXPRESSION, { EXPRESSION, DOT, LENGTH }, { DOT, LENGTH }, EXPRESSION_LENGTH);
+  AddRule(EXPRESSION, { EXPRESSION, DOT, ID, LB, ONE_OR_ZERO, PARAS, RB}, { DOT, LB, RB }, EXPRESSION_FUNCTION);
+  AddRule(PARAS, { EXPRESSION, MANY_OR_ZERO, COMMA_EXPRESSION }, {});
+  AddRule(COMMA_EXPRESSION, { COMMA, EXPRESSION }, { COMMA });
+  AddRule(EXPRESSION, { INT_LITERAL }, {});
+  AddRule(EXPRESSION, { TRUE }, {});
+  AddRule(EXPRESSION, { FALSE }, {});
+  AddRule(EXPRESSION, { ID }, {});
+  AddRule(EXPRESSION, { THIS }, {});
+  AddRule(EXPRESSION, { NEW, INT, LSQR, EXPRESSION, RSQR }, { LSQR, RSQR }, EXPRESSION_NEW_ARRAY);
+  AddRule(EXPRESSION, { NEW, ID, LB, RB }, { LB, RB }, EXPRESSION_NEW_CLASS );
+  AddRule(EXPRESSION, { NT, EXPRESSION }, { NT }, EXPRESSION_NT);
+  AddRule(EXPRESSION, { LB, EXPRESSION, RB }, { LB, RB });
 
   for (int i = 0; i < TokenTag::END; i++) {
     if (NFAs_[i].empty()) {
@@ -81,7 +84,8 @@ ManualParser::ManualParser() {
   std::cout << "Construct Parser: Done" << std::endl;
 }
 
-void ManualParser::AddRule(TokenTag head, std::vector<TokenTag> form, std::string comment) {
+void ManualParser::AddRule(TokenTag head, std::vector<TokenTag> form,
+        std::vector<TokenTag> filter, TokenTag abstract_tag) {
   auto init_node = new NFANode();
   std::vector<NFANode *> current_nodes = { init_node };
   for (auto iter = form.begin(); iter != form.end(); iter++) {
@@ -107,7 +111,7 @@ void ManualParser::AddRule(TokenTag head, std::vector<TokenTag> form, std::strin
     node->tag_ = head;
   }
   
-  rules_.emplace_back(head, init_node, comment);
+  rules_[head].emplace_back(head, init_node, filter, abstract_tag);
   NFAs_[head].push_back(init_node);
 }
 
@@ -123,16 +127,20 @@ void ManualParser::Enclosure(std::set<State> &wait_pool) {
           auto tmp_node = state.node->nex_[i];
           for (int j = TokenTag::DEFAULT; j < TokenTag::END; j++) {
             if (tmp_node->nex_[j] != nullptr) {
-              for (auto new_node : NFAs_[i]) {
+              for (auto &rule : rules_[i]) {
+                auto new_node = rule.head_;
                 for (auto termi : termis_[j]) {
-                  tmp.emplace(state.r, state.r, new_node, TokenTag(i), TokenTag(termi), new ParseTree(TokenTag(i), {}, ""));
+                  tmp.emplace(state.r, state.r, new_node, TokenTag(i), TokenTag(termi),
+                          new ParseTree(TokenTag(i), &rule, {}, ""));
                 }
               }
             }
           }
           if (tmp_node->valid_) {
-            for (auto new_node : NFAs_[i]) {
-              tmp.emplace(state.r, state.r, new_node, TokenTag(i), state.follow, new ParseTree(TokenTag(i), {}, ""));
+            for (auto &rule : rules_[i]) {
+              auto new_node = rule.head_;
+              tmp.emplace(state.r, state.r, new_node, TokenTag(i), state.follow,
+                      new ParseTree(TokenTag(i), &rule, {}, ""));
             }
           }
         }
@@ -158,21 +166,24 @@ void ManualParser::PrintContent(ParseTree *parse_tree) {
 std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTree* &parse_tree) {
   std::set<State> wait_pool_0, wait_pool_1;
   wait_pool_0.clear();
-  for (auto node : NFAs_[GOAL]) {
+  /*for (auto node : NFAs_[GOAL]) {
     wait_pool_0.insert(State(0, 0, node, GOAL, DEFAULT, new ParseTree(GOAL, {}, "")));
+  }*/
+  for (auto &rule : rules_[GOAL]) {
+    wait_pool_0.insert(State(0, 0, rule.head_, GOAL, DEFAULT, new ParseTree(GOAL, &rule, {}, "")));
   }
   /*for (auto node : NFAs_[STATEMENT]) {
     wait_pool_0.insert(State(0, 0, node, STATEMENT, DEFAULT, new ParseTree(STATEMENT, {}, "")));
   }*/
   std::vector<std::pair<ParseTree *, int> > st;
   st.clear();
-  st.emplace_back(new ParseTree(DEFAULT, {}, ""), static_cast<int>(tokens.size()));
+  st.emplace_back(new ParseTree(DEFAULT, nullptr, {}, ""), static_cast<int>(tokens.size()));
   for (int i = static_cast<int>(tokens.size()) - 1; i >= 0; i--) {
     const auto &token = tokens[i];
     if (token.tag == COMMENT) {
       continue;
     }
-    st.emplace_back(new ParseTree(token.tag, {}, token.chars), i);
+    st.emplace_back(new ParseTree(token.tag, nullptr, {}, token.chars), i);
   }
   auto wait_pool = &wait_pool_0;
   auto new_pool = &wait_pool_1;
