@@ -24,6 +24,25 @@ enum TokenTag {
   END
 };
 
+static const std::vector<std::string> token2str = {
+  "DEFAULT",
+
+  "ID", "INT", "BOOLEAN", "BIOP", "COMMENT", "TRUE", "FALSE",
+  "CLASS", "PUBLIC", "STATIC", "VOID", "MAIN", "STRING", "EXTENDS", "LENGTH",
+  "RETURN", "IF", "ELSE", "WHILE", "PRINT", "THIS", "NEW", "COMMA", "SEMI", "LCUR", "RCUR", "LSQR", "RSQR",
+  "LB", "RB", "DOT", "PLUS", "MINUS", "EQ", "NT", "INT_LITERAL",
+
+  "GOAL", "MAIN_CLASS", "CLASS_DECLARATION", "VAR_DECLARATION",
+  "METHOD_DECLARATION", "TYPE, STATEMENT",
+  "EXPRESSION", "EXTENDS_IDENTIFIER",
+
+  "TYPE_ID_MANY", "DOT_TYPE_ID", "ONE_OR_ZERO", "MANY_OR_ZERO",
+
+  "PARAS", "DOT_EXPRESSION",
+
+  "END"
+};
+
 struct Token {
   TokenTag tag;
   std::string chars;

@@ -188,36 +188,43 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
     new_pool->clear();
     if (current_pos >= next_pos && st.size() > 1) {
       std::cout << "fuck" << std::endl;
-      return "";
+      return "Error: Interal Error";
     }
     int num_reduce = 0;
     for (const auto &state : *wait_pool) {
       if (state.node->valid_ && state.follow == token && state.r == current_pos) {
-        std::cout << "eat it! follow = " << state.follow << std::endl;
-        PrintContent(state.parse_tree);
-        std::cout << std::endl;
-        if (token == DEFAULT) {
-          std::cout << "yes" << std::endl;
-          parse_tree = state.parse_tree;
-          return "OK";
-        }
+        std::cout << "Find a reduce-able grammar." << std::endl;
         num_reduce++;
-        if (state.l >= state.r) {
-          std::cout << "fuck" << std::endl;
-        }
-        st.emplace_back(state.parse_tree, state.l);
       }
     }
-    if (num_reduce > 1) {
-      std::cout << "Error!!!!!!" << std::endl;
-      return "Error";
-    }
-    else if (num_reduce == 1) {
+    if (num_reduce == 1) {
+      for (const auto &state : *wait_pool) {
+        if (state.node->valid_ && state.follow == token && state.r == current_pos) {
+          std::cout << "eat it! follow = " << state.follow << std::endl;
+          PrintContent(state.parse_tree);
+          std::cout << std::endl;
+          if (token == DEFAULT) {
+            std::cout << "yes" << std::endl;
+            parse_tree = state.parse_tree;
+            return "OK";
+          }
+          num_reduce++;
+          if (state.l >= state.r) {
+            std::cout << "fuck" << std::endl;
+          }
+          st.emplace_back(state.parse_tree, state.l);
+        }
+      }
       for (const auto &state : *wait_pool) {
         if (state.r <= st.back().second) {
           new_pool->insert(state);
         }
       }
+    }
+    else if (num_reduce > 1) {
+      std::cout << "Error: have differenct interpretions." << std::endl;
+      
+      return "Error";
     }
     else if (num_reduce == 0) {
       bool can_go_on = false;
