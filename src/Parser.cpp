@@ -23,7 +23,7 @@ ManualParser::ManualParser() {
   AddRule(METHOD_DECLARATION,
           { PUBLIC, TYPE, ID, LB, ONE_OR_ZERO, TYPE_ID_MANY, RB, LCUR, MANY_OR_ZERO, VAR_DECLARATION,
             MANY_OR_ZERO, STATEMENT, RETURN, EXPRESSION, SEMI, RCUR},
-            { PUBLIC, LB, RB, LCUR, RETURN, SEMI, RCUR });
+            { PUBLIC, LB, RB, LCUR, SEMI, RCUR });
   AddRule(TYPE_ID_MANY, { TYPE, ID, MANY_OR_ZERO, COMMA_TYPE_ID }, {});
   AddRule(COMMA_TYPE_ID, { COMMA, TYPE, ID }, {});
   AddRule(TYPE, { INT, LSQR, RSQR }, {});
@@ -33,7 +33,7 @@ ManualParser::ManualParser() {
   AddRule(STATEMENT, { LCUR, MANY_OR_ZERO, STATEMENT, RCUR }, { LCUR, RCUR }, STATEMENT_S);
   AddRule(STATEMENT, { IF, LB, EXPRESSION, RB, STATEMENT, ELSE, STATEMENT}, { IF, LB, RB, ELSE }, STATEMENT_IF_ELSE);
   AddRule(STATEMENT, { WHILE, LB, EXPRESSION, RB, STATEMENT }, { LB, RB }, STATEMENT_WHILE);
-  AddRule(STATEMENT, { PRINT, LB, EXPRESSION, RB, SEMI }, { LB, RB, SEMI }, STATEMENT_PRINT);
+  AddRule(STATEMENT, { PRINT, LB, EXPRESSION, RB, SEMI }, { PRINT, LB, RB, SEMI }, STATEMENT_PRINT);
   AddRule(STATEMENT, { ID, EQ, EXPRESSION, SEMI }, { EQ, SEMI }, STATEMENT_EQ);
   AddRule(STATEMENT, { ID, LSQR, EXPRESSION, RSQR, EQ, EXPRESSION, SEMI }, { LSQR, RSQR, SEMI }, STATEMENT_ARRAY);
   AddRule(EXPRESSION, { EXPRESSION, BIOP, EXPRESSION }, {}, EXPRESSION_BIOP);
@@ -50,7 +50,7 @@ ManualParser::ManualParser() {
   AddRule(EXPRESSION, { NEW, INT, LSQR, EXPRESSION, RSQR }, { LSQR, RSQR }, EXPRESSION_NEW_ARRAY);
   AddRule(EXPRESSION, { NEW, ID, LB, RB }, { LB, RB }, EXPRESSION_NEW_CLASS );
   AddRule(EXPRESSION, { NT, EXPRESSION }, { NT }, EXPRESSION_NT);
-  AddRule(EXPRESSION, { LB, EXPRESSION, RB }, { LB, RB });
+  AddRule(EXPRESSION, { LB, EXPRESSION, RB }, { LB, RB }, EXPRESSION_BRACKET);
 
   for (int i = 0; i < TokenTag::END; i++) {
     if (NFAs_[i].empty()) {
@@ -164,17 +164,6 @@ void ManualParser::PrintContent(ParseTree *parse_tree) {
 }
 
 std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTree* &parse_tree) {
-  std::set<State> wait_pool_0, wait_pool_1;
-  wait_pool_0.clear();
-  /*for (auto node : NFAs_[GOAL]) {
-    wait_pool_0.insert(State(0, 0, node, GOAL, DEFAULT, new ParseTree(GOAL, {}, "")));
-  }*/
-  for (auto &rule : rules_[GOAL]) {
-    wait_pool_0.insert(State(0, 0, rule.head_, GOAL, DEFAULT, new ParseTree(GOAL, &rule, {}, "")));
-  }
-  /*for (auto node : NFAs_[STATEMENT]) {
-    wait_pool_0.insert(State(0, 0, node, STATEMENT, DEFAULT, new ParseTree(STATEMENT, {}, "")));
-  }*/
   std::vector<std::pair<ParseTree *, int> > st;
   st.clear();
   st.emplace_back(new ParseTree(DEFAULT, nullptr, {}, ""), static_cast<int>(tokens.size()));
@@ -185,6 +174,18 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
     }
     st.emplace_back(new ParseTree(token.tag, nullptr, {}, token.chars), i);
   }
+
+  std::set<State> wait_pool_0, wait_pool_1;
+  wait_pool_0.clear();
+  /*for (auto node : NFAs_[GOAL]) {
+  wait_pool_0.insert(State(0, 0, node, GOAL, DEFAULT, new ParseTree(GOAL, {}, "")));
+}*/
+  for (auto &rule : rules_[GOAL]) {
+    wait_pool_0.insert(State(st.back().second, st.back().second, rule.head_, GOAL, DEFAULT, new ParseTree(GOAL, &rule, {}, "")));
+  }
+  /*for (auto node : NFAs_[STATEMENT]) {
+    wait_pool_0.insert(State(0, 0, node, STATEMENT, DEFAULT, new ParseTree(STATEMENT, {}, "")));
+  }*/
   auto wait_pool = &wait_pool_0;
   auto new_pool = &wait_pool_1;
   while (st.size() > 0) {
@@ -363,7 +364,7 @@ ParseTree* ManualParser::FilterParseTree(ParseTree* node) {
   new_node->content_ = node->content_;
   auto iter = node->rule_->filter_.begin();
   auto just_tmp = [](TokenTag tag) {
-    return (tag == COMMA_TYPE_ID || tag == COMMA_EXPRESSION);
+    return (tag == COMMA_TYPE_ID || tag == COMMA_EXPRESSION || tag == EXPRESSION_BRACKET);
   };
   for (const auto &son : node->sons_) {
     if (iter != node->rule_->filter_.end() && *iter == son->head_) {
@@ -371,7 +372,7 @@ ParseTree* ManualParser::FilterParseTree(ParseTree* node) {
       continue;
     }
     auto tmp_node = FilterParseTree(son);
-    if (just_tmp(son->head_)) {
+    if (just_tmp(son->head_) || (son->rule_ != nullptr && just_tmp(son->rule_->abstract_tag_))) {
       for (const auto &new_son : tmp_node->sons_) {
         new_node->sons_.push_back(new_son);
       }
