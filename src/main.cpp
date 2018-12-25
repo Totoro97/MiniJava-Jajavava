@@ -10,7 +10,7 @@
 void DrawParseTree(ParseTree *root, std::string sp) {
   std::cout << sp << token2str[root->head_] << " " << root->content_ << std::endl;
   for (auto son : root->sons_) {
-    DrawParseTree(son, sp + " ");
+    DrawParseTree(son, sp + "|  ");
   }
 };
 

@@ -347,6 +347,8 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
 }
 
 ParseTree* ManualParser::FilterParseTree(ParseTree* node) {
+  if (node == nullptr)
+    return nullptr;
   auto new_node = new ParseTree();
   if (node->sons_.empty() || node->rule_ == nullptr) {
     new_node->head_ = node->head_;
