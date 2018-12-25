@@ -264,7 +264,12 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
         }
       }
       if (!can_go_on) {
-        std::cout << "Error: Can't accept any new token" << std::endl;
+        std::cout << "Error: at";
+        for (int i = std::max(0, i - 4); i <= current_pos + 1 && i < tokens.size(); i++) {
+          std::cout << " " << tokens[i].chars;
+        }
+        std::cout << std::endl;
+        std::cout << "Can't accept any new token" << std::endl;
         std::cout << "Your current token is " << token2str[token] << " " << token2str[next_token] << std::endl;
         auto MinDistanceToValid = [](const State &state) {
           std::queue<std::pair<NFANode *, int> > que;
@@ -298,6 +303,7 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
             }
           }
         }
+        exp_tokens.erase(token);
         for (auto tk : exp_tokens) {
           std::cout << "Expect: " << token2str[tk] << std::endl;
         }
@@ -315,6 +321,7 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
             }
           }
         }
+        exp_token_tokens.erase(std::make_pair(token, next_token));
         for (auto tk_tk : exp_token_tokens) {
           std::cout << "Expect: " << token2str[tk_tk.first] << " " << token2str[tk_tk.second] << std::endl;
         }
