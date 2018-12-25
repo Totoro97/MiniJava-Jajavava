@@ -24,7 +24,7 @@ class ParseTree {
 public:
   TokenTag head_;
   std::vector<ParseTree *> sons_;
-  std::string content_;
+  std::string content_, comment_;
 
   ParseTree(TokenTag head = DEFAULT, std::vector<ParseTree *> sons = {}, std::string content = "") {
     head_ = head;
@@ -40,7 +40,6 @@ public:
   virtual std::string GetParseTree(const std::vector<Token> &tokens, ParseTree* &parse_tree) {
     return "";
   }
-
 };
 
 struct State {

@@ -49,6 +49,33 @@ ManualParser::ManualParser() {
   AddRule(EXPRESSION, { NT, EXPRESSION });
   AddRule(EXPRESSION, { LB, EXPRESSION, RB });
 
+  for (int i = 0; i < TokenTag::END; i++) {
+    if (NFAs_[i].empty()) {
+      termis_[i].insert(TokenTag(i));
+    }
+  }
+  while (true) {
+    bool no_change = true;
+    for (int i = 0; i < TokenTag::END; i++) {
+      auto current_size = termis_[i].size();
+      for (auto node : NFAs_[i]) {
+        for (int j = 0; j < TokenTag::END; j++) {
+          if (node->nex_[j]) {
+            for (auto token : termis_[j]) {
+              termis_[i].insert(token);
+            }
+          }
+        }
+      }
+      if (current_size != termis_[i].size()) {
+        no_change = false;
+      }
+    }
+    if (no_change) {
+      break;
+    }
+  }
+
   std::cout << "Add Rule: Done" << std::endl;
 
   std::cout << "Construct Parser: Done" << std::endl;
@@ -82,33 +109,6 @@ void ManualParser::AddRule(TokenTag head, std::vector<TokenTag> form, std::strin
   
   rules_.emplace_back(head, init_node, comment);
   NFAs_[head].push_back(init_node);
-
-  for (int i = 0; i < TokenTag::END; i++) {
-    if (NFAs_[i].empty()) {
-      termis_[i].insert(TokenTag(i));
-    }
-  }
-  while (true) {
-    bool no_change = true;
-    for (int i = 0; i < TokenTag::END; i++) {
-      auto current_size = termis_[i].size();
-      for (auto node : NFAs_[i]) {
-        for (int j = 0; j < TokenTag::END; j++) {
-          if (node->nex_[j]) {
-            for (auto token : termis_[j]) {
-              termis_[i].insert(token);
-            }
-          }
-        }
-      }
-      if (current_size != termis_[i].size()) {
-        no_change = false;
-      }
-    }
-    if (no_change) {
-      break;
-    }
-  }
 }
 
 ManualParser::~ManualParser() = default;
@@ -265,6 +265,7 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
       }
       if (!can_go_on) {
         std::cout << "Error: Can't accept any new token" << std::endl;
+        std::cout << "Your current token is " << token2str[token] << " " << token2str[next_token] << std::endl;
         auto MinDistanceToValid = [](const State &state) {
           std::queue<std::pair<NFANode *, int> > que;
           que.push(std::make_pair(state.node, 0));
@@ -283,9 +284,39 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
           }
           return -1;
         };
+        std::set<TokenTag> exp_tokens;
         for (const auto &state : *wait_pool) {
-          int dis = MinDistanceToValid(state);
-          if (dis == -1) continue;
+          if (state.r != current_pos) {
+            continue;
+          }
+          if (state.node->nex_[token] == nullptr) {
+            for (int i = DEFAULT; i < END; i++) {
+              if (state.node->nex_[i] != nullptr) {
+                for (auto j : termis_[i])
+                  exp_tokens.insert(j);
+              }
+            }
+          }
+        }
+        for (auto tk : exp_tokens) {
+          std::cout << "Expect: " << token2str[tk] << std::endl;
+        }
+        std::set<std::pair<TokenTag, TokenTag> > exp_token_tokens;
+        for (const auto &state : *wait_pool) {
+          if (state.r != current_pos) {
+            continue;
+          }
+          if (state.node->nex_[token] != nullptr) {
+            for (int i = DEFAULT; i < END; i++) {
+              if (state.node->nex_[token]->nex_[i] != nullptr) {
+                for (auto j : termis_[i])
+                  exp_token_tokens.insert(std::make_pair(token, j));
+              }
+            }
+          }
+        }
+        for (auto tk_tk : exp_token_tokens) {
+          std::cout << "Expect: " << token2str[tk_tk.first] << " " << token2str[tk_tk.second] << std::endl;
         }
         return "Error";
       }
