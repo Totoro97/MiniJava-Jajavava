@@ -40,6 +40,7 @@ int main() {
     return 0;
   } else {
     DrawParseTree(abstract_parse_tree, "");
+    DrawParseTree(parse_tree, "");
   }
 
   err_info = parser->Analysis(parse_tree);
