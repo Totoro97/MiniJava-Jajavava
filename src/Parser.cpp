@@ -389,6 +389,11 @@ ParseTree* ManualParser::FilterParseTree(ParseTree* node) {
 
 std::string ManualParser::Analysis(ParseTree *root){
 	std::cout<<token2str[root->head_]<<std::endl;
+	int Class_Cnt = 0;
+	std::map<std::string, int> class_name;
+	std::map<std::string, TokenTag> return_value[256];
+	std::vector<int>edge[256];
+	int degree[256];
 	return "OK";
 }
 /*std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTree* &parse_tree) {
