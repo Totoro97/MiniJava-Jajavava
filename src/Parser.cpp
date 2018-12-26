@@ -387,6 +387,10 @@ ParseTree* ManualParser::FilterParseTree(ParseTree* node) {
   return new_node;
 }
 
+std::string ManualParser::Analysis(ParseTree *root){
+	std::cout<<token2str[root->head_]<<std::endl;
+	return "OK";
+}
 /*std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTree* &parse_tree) {
   std::vector<std::list<Rule> > paths;
   paths.emplace_back();

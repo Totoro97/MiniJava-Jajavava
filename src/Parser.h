@@ -81,4 +81,5 @@ public:
   void Enclosure(std::set<State> &wait_pool);
   void PrintContent(ParseTree *parse_tree);
   ParseTree* FilterParseTree(ParseTree* node);
+  std::string Analysis(ParseTree *parse_tree);
 };
