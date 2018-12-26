@@ -10,6 +10,7 @@
 
 ManualParser::ManualParser() {
   std::cout << "Construct Parser: Begin" << std::endl;
+  rule_num_ = 0;
   AddRule(GOAL, { MAIN_CLASS, MANY_OR_ZERO, CLASS_DECLARATION }, {});
   AddRule(MAIN_CLASS,
           { CLASS, ID, LCUR, PUBLIC, STATIC, VOID, MAIN, LB, STRING, LSQR, RSQR, ID, RB, LCUR, STATEMENT, RCUR, RCUR},
@@ -110,8 +111,8 @@ void ManualParser::AddRule(TokenTag head, std::vector<TokenTag> form,
     node->valid_ = true;
     node->tag_ = head;
   }
-  
-  rules_[head].emplace_back(head, init_node, filter, abstract_tag);
+
+  rules_[head].emplace_back(head, init_node, filter, abstract_tag, this->rule_num_++);
   NFAs_[head].push_back(init_node);
 }
 
@@ -403,7 +404,7 @@ ParseTree* ManualParser::FilterParseTree(ParseTree* node) {
     auto node = new ParseTree(token.tag, {}, token.chars);
     st.push_back(node);
   }
-  
+
   int now_pt = st.size() - 1;
   int ok_pt = st.size();
   TokenTag ok_tag = DEFAULT;
