@@ -331,6 +331,8 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
                   exp_token_tokens.insert(std::make_pair(token, j));
               }
             }
+            if (state.node->nex_[token]->valid_)
+              exp_token_tokens.insert(std::make_pair(token, state.follow));
           }
         }
         exp_token_tokens.erase(std::make_pair(token, next_token));
