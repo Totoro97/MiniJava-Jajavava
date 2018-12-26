@@ -3,6 +3,7 @@
 #include <cstring>
 #include <iostream>
 #include <vector>
+#include <set>
 #include <string>
 
 /* token rules:
@@ -195,8 +196,23 @@ std::string ManualLexer::GetTokens(std::ifstream &in_stream, std::vector<Token> 
     if (res == 0) {
       if (past == last_valid + 1) {
         int tmp = std::max(0, i - 10);
-        std::string error_info = "Lexer Error at: " + std::string(s + tmp, i - tmp);
-        return error_info;
+        std::cout << "Lexer Error at: " + std::string(s + tmp, i - tmp + 1) << std::endl;
+        std::set<char> exp_char;
+        for (auto node : past_nodes) {
+          if (node == nullptr) {
+            continue;
+          }
+          for (int i = 0; i < 128; i++) {
+            if (node -> nex_[i] != nullptr) {
+              exp_char.insert(char(i));
+            }
+          }
+          std::cout << std::endl;
+        }
+        for (auto ch : exp_char) {
+          std::cout << "Expect: " << std::string(s + tmp, i - tmp) << ch << std::endl;
+        }
+        return "Lexer Error";
       }
       while(s[past] == '\n' || s[past] == '\r' || s[past] == ' ' || s[past] == '\t')
         past++;

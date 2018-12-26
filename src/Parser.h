@@ -77,5 +77,5 @@ public:
   std::set<TokenTag> termis_[TokenTag::END];
   void Enclosure(std::set<State> &wait_pool);
   void PrintContent(ParseTree *parse_tree);
-  ParseTree* ManualParser::FilterParseTree(ParseTree* node);
+  ParseTree* FilterParseTree(ParseTree* node);
 };
