@@ -2,4 +2,7 @@
 
 Authors: WANG Peng, ZHOU lin
 
-LR(1) Parser for MinJava Language.
+Lexer and LR(1) Parser for MinJava Language.
+
+~~纯手工，无添加，不依赖~~
+
