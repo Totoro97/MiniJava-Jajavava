@@ -387,13 +387,13 @@ ParseTree* ManualParser::FilterParseTree(ParseTree* node) {
   return new_node;
 }
 
-std::string ManualParser::AddMethod(int id, std::string method_name, TokenTag method_tag){
+std::string ManualParser::AddMethod(int id, std::string method_name, Token method_tag){
 	if (class_methods_[id].find(method_name) != class_methods_[id].end())
 		return "Error: Method Name \"" + method_name + "\" Multiple Definitions.";
 	class_methods_[id][method_name] = method_tag;
 	return "OK";
 }
-std::string ManualParser::AddVar(int id, std::string var_name, TokenTag var_tag){
+std::string ManualParser::AddVar(int id, std::string var_name, Token var_tag){
 	if (class_vars_[id].find(var_name) != class_vars_[id].end())
 		return "Error: Var Name \"" + var_name + "\" Multiple Definitions.";
 	class_vars_[id][var_name] = var_tag;
@@ -430,11 +430,51 @@ std::string ManualParser::Analysis(ParseTree *root){
 	while (!que.empty()){
 		int u = que.front(); que.pop();
 		vis_cnt++;
+		ParseTree *node = root->sons_[u];
+		for (ParseTree *var_or_method : node->sons_){//Build Class Record
+			ParseTree *type;
+			std::string name;
+			if (var_or_method->head_ == METHOD_DECLARATION){
+				type = var_or_method->sons_[1];
+				name = var_or_method->sons_[2]->content_;
+			}
+			else if (var_or_method->head_ == VAR_DECLARATION){
+				type = var_or_method->sons_[0];
+				name = var_or_method->sons_[1]->content_;
+			}
 
+
+			TokenTag tag = DEFAULT;
+			if (type->sons_[0]->head_ == INT){
+				if (type->sons_.size() == 1)
+					tag = TYPE_INT;
+				else
+					tag = TYPE_ARRAY;
+			}
+			else if (type->sons_[0]->head_ == BOOLEAN)
+				tag = TYPE_BOOLEAN;
+			else if (type->sons_[0]->head_ == ID)
+				tag = TYPE_CLASS;
+
+
+			Token token(tag);
+			if (type->sons_[0]->head_ == ID)
+				token.chars = type->sons_[0]->content_;
+
+			std::string info;
+			if (var_or_method->head_ == METHOD_DECLARATION)
+				info = AddMethod(u, name, token);
+			else
+				info = AddVar(u, name, token);
+			if (info != std::string("OK"))
+				return info;
+		}
 		for (int v : edge[u]){
 			degree[v]--;
 			if (degree[v] == 0) que.push(v);
 
+			class_methods_[v] = class_methods_[u];
+			class_vars_[v] = class_vars_[u];
 		}
 	}
 	if (vis_cnt != class_cnt)

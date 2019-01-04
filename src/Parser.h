@@ -80,10 +80,10 @@ public:
   std::set<TokenTag> termis_[TokenTag::END];
 
   std::map<std::string, int> class_name_;
-  std::map<std::string, TokenTag> class_methods_[256];
-  std::map<std::string, TokenTag> class_vars_[256];
-  std::string AddMethod(int id, std::string method_name, TokenTag method_tag);
-  std::string AddVar(int id, std::string var_name, TokenTag var_tag);
+  std::map<std::string, Token> class_methods_[256];
+  std::map<std::string, Token> class_vars_[256];
+  std::string AddMethod(int id, std::string method_name, Token method_tag);
+  std::string AddVar(int id, std::string var_name, Token var_tag);
 
   void Enclosure(std::set<State> &wait_pool);
   void PrintContent(ParseTree *parse_tree);
