@@ -387,10 +387,21 @@ ParseTree* ManualParser::FilterParseTree(ParseTree* node) {
   return new_node;
 }
 
+std::string ManualParser::AddMethod(int id, std::string method_name, TokenTag method_tag){
+	if (class_methods_[id].find(method_name) != class_methods_[id].end())
+		return "Error: Method Name \"" + method_name + "\" Multiple Definitions.";
+	class_methods_[id][method_name] = method_tag;
+	return "OK";
+}
+std::string ManualParser::AddVar(int id, std::string var_name, TokenTag var_tag){
+	if (class_vars_[id].find(var_name) != class_vars_[id].end())
+		return "Error: Var Name \"" + var_name + "\" Multiple Definitions.";
+	class_vars_[id][var_name] = var_tag;
+	return "OK";
+}
 std::string ManualParser::Analysis(ParseTree *root){
 	//std::cout<<token2str[root->head_]<<std::endl;
 	int class_cnt = 0, vis_cnt = 0;
-	std::map<std::string, int> class_name;
 	std::map<std::string, TokenTag> return_value[256];
 	std::vector<int>edge[256];
 	int degree[256] = {};
@@ -400,18 +411,18 @@ std::string ManualParser::Analysis(ParseTree *root){
 	for (ParseTree *son : root->sons_){
 		//std::cout<<son->sons_[1]->content_<<std::endl;
 		std::string name = son->sons_[1]->content_;
-		if (class_name.find(name) != class_name.end())
+		if (class_name_.find(name) != class_name_.end())
 			return "Error: Class Name \"" + name + "\" Multiple Definitions.";
-		class_name[name] = class_cnt++;
+		class_name_[name] = class_cnt++;
 	}
 	for (ParseTree *son : root->sons_) if (son->sons_[2]->head_ == TokenTag::EXTENDS_IDENTIFIER ){
-		int son_id = class_name[son->sons_[1]->content_];
+		int son_id = class_name_[son->sons_[1]->content_];
 		std::string name = son->sons_[2]->sons_[1]->content_;
 		//std::cout<<name<<std::endl;
-		if (class_name.find(name) == class_name.end())
+		if (class_name_.find(name) == class_name_.end())
 			return "Error: Extends Class \"" + name + "\" No Definitions.";
-		degree[class_name[name]]++;
-		edge[son_id].push_back(class_name[name]);
+		degree[son_id]++;
+		edge[class_name_[name]].push_back(son_id);
 	}
 	for (int id = 0; id < class_cnt; id++) if (degree[id] == 0)
 		que.push(id);
@@ -419,9 +430,11 @@ std::string ManualParser::Analysis(ParseTree *root){
 	while (!que.empty()){
 		int u = que.front(); que.pop();
 		vis_cnt++;
+
 		for (int v : edge[u]){
 			degree[v]--;
 			if (degree[v] == 0) que.push(v);
+
 		}
 	}
 	if (vis_cnt != class_cnt)
