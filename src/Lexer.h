@@ -58,11 +58,11 @@ struct Token {
 };
 
 class NFANode {
-public: 
+public:
   NFANode *nex_[256];
   bool valid_;
   TokenTag tag_;
-  
+
   NFANode(bool valid = false, TokenTag tag = DEFAULT) {
     memset(nex_, 0, 256 * sizeof(NFANode *));
     valid_ = valid;

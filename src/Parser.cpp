@@ -10,6 +10,7 @@
 
 ManualParser::ManualParser() {
   std::cout << "Construct Parser: Begin" << std::endl;
+  rule_num_ = 0;
   AddRule(GOAL, { MAIN_CLASS, MANY_OR_ZERO, CLASS_DECLARATION }, {});
   AddRule(MAIN_CLASS,
           { CLASS, ID, LCUR, PUBLIC, STATIC, VOID, MAIN, LB, STRING, LSQR, RSQR, ID, RB, LCUR, STATEMENT, RCUR, RCUR},
@@ -110,8 +111,8 @@ void ManualParser::AddRule(TokenTag head, std::vector<TokenTag> form,
     node->valid_ = true;
     node->tag_ = head;
   }
-  
-  rules_[head].emplace_back(head, init_node, filter, abstract_tag);
+
+  rules_[head].emplace_back(head, init_node, filter, abstract_tag, this->rule_num_++);
   NFAs_[head].push_back(init_node);
 }
 
@@ -386,6 +387,48 @@ ParseTree* ManualParser::FilterParseTree(ParseTree* node) {
   return new_node;
 }
 
+std::string ManualParser::Analysis(ParseTree *root){
+	//std::cout<<token2str[root->head_]<<std::endl;
+	int class_cnt = 0, vis_cnt = 0;
+	std::map<std::string, int> class_name;
+	std::map<std::string, TokenTag> return_value[256];
+	std::vector<int>edge[256];
+	int degree[256] = {};
+	std::queue<int>que;
+
+
+	for (ParseTree *son : root->sons_){
+		//std::cout<<son->sons_[1]->content_<<std::endl;
+		std::string name = son->sons_[1]->content_;
+		if (class_name.find(name) != class_name.end())
+			return "Error: Class Name \"" + name + "\" Multiple Definitions.";
+		class_name[name] = class_cnt++;
+	}
+	for (ParseTree *son : root->sons_) if (son->sons_[2]->head_ == TokenTag::EXTENDS_IDENTIFIER ){
+		int son_id = class_name[son->sons_[1]->content_];
+		std::string name = son->sons_[2]->sons_[1]->content_;
+		//std::cout<<name<<std::endl;
+		if (class_name.find(name) == class_name.end())
+			return "Error: Extends Class \"" + name + "\" No Definitions.";
+		degree[class_name[name]]++;
+		edge[son_id].push_back(class_name[name]);
+	}
+	for (int id = 0; id < class_cnt; id++) if (degree[id] == 0)
+		que.push(id);
+
+	while (!que.empty()){
+		int u = que.front(); que.pop();
+		vis_cnt++;
+		for (int v : edge[u]){
+			degree[v]--;
+			if (degree[v] == 0) que.push(v);
+		}
+	}
+	if (vis_cnt != class_cnt)
+		return "Error: Extends Relation Unvalid.";
+
+	return "OK";
+}
 /*std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTree* &parse_tree) {
   std::vector<std::list<Rule> > paths;
   paths.emplace_back();
@@ -403,7 +446,7 @@ ParseTree* ManualParser::FilterParseTree(ParseTree* node) {
     auto node = new ParseTree(token.tag, {}, token.chars);
     st.push_back(node);
   }
-  
+
   int now_pt = st.size() - 1;
   int ok_pt = st.size();
   TokenTag ok_tag = DEFAULT;

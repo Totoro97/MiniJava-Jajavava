@@ -34,12 +34,20 @@ int main() {
   auto parser = new ManualParser();
   err_info = parser->GetParseTree(tokens, parse_tree);
   abstract_parse_tree = parser->FilterParseTree(parse_tree);
-  delete(parser);
+
   if (err_info != std::string("OK")) {
     std::cout << err_info << std::endl;
     return 0;
   } else {
     DrawParseTree(abstract_parse_tree, "");
+    DrawParseTree(parse_tree, "");
+  }
+
+  err_info = parser->Analysis(parse_tree);
+  delete(parser);
+  if (err_info != std::string("OK")){
+  	std::cout << err_info << std::endl;
+	return 0;
   }
   return 0;
 }
