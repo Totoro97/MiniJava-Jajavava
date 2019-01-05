@@ -56,6 +56,70 @@ BaseClass* Function::Execute(std::vector<BaseClass *> inputs, SymbolTable &symbo
 
 // ---------------------- SymbolTable --------------------------------------------------
 
+void SymbolTable::Add(std::string id, BaseClass *class_ptr) {
+  if (table_.find(id) == table_.end())
+    table_.emplace(id, new std::stack<BaseClass *>);
+  table_[id]->push(class_ptr);
+}
+
+void SymbolTable::Change(std::string id, BaseClass *class_ptr) {
+  Del(id);
+  Add(id, class_ptr);
+}
+
+void SymbolTable::Del(std::string id) {
+  if (table_.find(id) == table_.end())
+    table_.emplace(id, new std::stack<BaseClass *>);
+  auto st = table_[id];
+  if (st->empty()) {
+    std::cout << "Error: Can Not Del" << std::endl;
+  }
+  st->pop();
+}
+
+BaseClass* SymbolTable::Find(std::string id) {
+  if (table_.find(id) == table_.end()) {
+    return nullptr;
+  }
+  auto st = table_[id];
+  if (st->empty()) {
+    return nullptr;
+  }
+  return st->top();
+}
+
+BaseClass* SymbolTable::DeepCopyFrom(std::string id) {
+  auto class_ptr = Find(id);
+  if (class_ptr->class_type_ == CLASS_INT) {
+    auto new_class = new IntClass(((IntClass *) class_ptr)->data_);
+    return (BaseClass *) new_class;
+  }
+  else if (class_ptr->class_type_ == CLASS_BOOL) {
+    auto new_class = new BoolClass(((BoolClass *) class_ptr)->data_);
+    return (BaseClass *) new_class;
+  }
+  else if (class_ptr->class_type_ == CLASS_ARRAY) {
+    auto new_class = new ArrayClass(((ArrayClass *) class_ptr)->length_);
+    for (int i = 0; i < new_class->length_; i++) {
+      new_class->data_[i] = ((ArrayClass *) class_ptr)->data_[i];
+    }
+    return (BaseClass *) new_class;
+  }
+  else {
+    auto new_class = new ClassClass();
+    new_class->Assign(class_ptr);
+    return (BaseClass *) new_class;
+  }
+}
+
+void SymbolTable::LoadFromAnotherSymbolTable(SymbolTable &new_table) {
+  table_.clear();
+  for (auto iter = new_table.table_.begin(); iter != new_table.table_.end(); iter++) {
+    auto new_stack = new std::stack<BaseClass *>(*(iter->second));
+    table_.emplace(iter->first, new_stack);
+  }
+}
+
 // ---------------------- Interpreter --------------------------------------------------
 
 std::string Interpreter::Interprete() {
@@ -78,6 +142,7 @@ void Interpreter::AddVarDeclaration(ParseTree *tree, SymbolTable &symbols) {
     symbols.Add(id, (BaseClass *) new ArrayClass());
   }
   else if (type_node->head_ == TYPE_CLASS) {
+    /*
     ClassClass *class_ptr =
       (ClassClass *) global_interpreter.class_table_.DeepCopyFrom(type_node->sons_[0]->content_);
     if (class_ptr == nullptr) {
@@ -85,6 +150,8 @@ void Interpreter::AddVarDeclaration(ParseTree *tree, SymbolTable &symbols) {
       exit(0);
     }
     symbols.Add(id, (BaseClass *) class_ptr);
+    */
+    symbols.Add(id, (BaseClass *) new ClassClass(type_node->sons_[0]->content_));
   }
   else {
     std::cout << "Fxxk Your Type" << std::endl;

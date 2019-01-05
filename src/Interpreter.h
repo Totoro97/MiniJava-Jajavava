@@ -23,7 +23,7 @@ enum ClassType {
 class BaseClass {
 public:
   BaseClass() {}
-  virtual void Assign(const BaseClass &r_value);
+  virtual void Assign(BaseClass *r_value);
   
   ClassType class_type_;
 };
@@ -33,12 +33,12 @@ public:
   IntClass(int data = 0) : data_(data) {
     class_type_ = CLASS_INT;
   } 
-  void Assign(const BaseClass &r_value) final {
-    if (r_value.class_type_ != CLASS_INT) {
+  void Assign(BaseClass *r_value) final {
+    if (r_value->class_type_ != CLASS_INT) {
       std::cout << "Error: Data Type Not Correspond." << std::endl;
       exit(0);
     }
-    data_ = ((IntClass *) (&r_value))->data_;
+    data_ = ((IntClass *) (r_value))->data_;
   }
 
   int data_;
@@ -49,12 +49,12 @@ public:
   BoolClass(bool data = false) : data_(data) {
     class_type_ = CLASS_BOOL;
   }
-  void Assign(const BaseClass &r_value) final {
-    if (r_value.class_type_ != CLASS_BOOL) {
+  void Assign(BaseClass *r_value) final {
+    if (r_value->class_type_ != CLASS_BOOL) {
       std::cout << "Error: Data Type Not Correspond." << std::endl;
       exit(0);
     }
-    data_ = ((BoolClass *) (&r_value))->data_;
+    data_ = ((BoolClass *) (r_value))->data_;
   }
 
   bool data_;
@@ -66,11 +66,15 @@ public:
     data_ = new int[length];
     length_ = length;
   }
-  void Assign(const BaseClass &r_value) final {
-    if (r_value.class_type_ != CLASS_ARRAY) {
+  void Assign(BaseClass *r_value) final {
+    if (r_value->class_type_ != CLASS_ARRAY) {
       std::cout << "Error: Data Type Not Correspond." << std::endl;
       exit(0);
-      data_ = ((ArrayClass *) (&r_value))->data_;
+      auto array_ptr = (ArrayClass *) r_value;
+      length_ = array_ptr->length_;
+      data_ = new int[length_];
+      for (int i = 0; i < length_; i++)
+        data_[i] = array_ptr->data_[i];
     }
   }
   int *data_ = nullptr;
@@ -91,17 +95,16 @@ public:
 
 class ClassClass : BaseClass {
 public:
-  ClassClass();
-  ClassClass(SymbolTable members) {
-    members_.LoadFromAnotherSymbolTable(members);
+  ClassClass(std::string class_name = "") {
+    class_name_ = class_name;
   }
 
-  void Assign(const BaseClass &r_value) final {
-    if (r_value.class_type_ != CLASS_CLASS) {
+  void Assign(BaseClass *r_value) final {
+    if (r_value->class_type_ != CLASS_CLASS) {
       std::cout << "Error: Data Type Not Correspond." << std::endl;
       exit(0);
     }
-    auto ptr = (ClassClass *) (&r_value);
+    auto ptr = (ClassClass *) (r_value);
     if (ptr->class_name_ != class_name_) {
       std::cout << "Error: Data Type Not Correspond." << std::endl;
       exit(0);
@@ -111,11 +114,13 @@ public:
     for (auto func : ptr->functions_) {
       functions_.insert(func);
     }
+    initialized_ = true;
   }
 
   SymbolTable members_;
   std::map<std::string, Function *> functions_;
   std::string class_name_ = "";
+  bool initialized_ = false;
 };
 
 typedef std::vector<std::pair<ClassType, std::string> > Paras;
