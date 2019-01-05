@@ -106,9 +106,33 @@ BaseClass* SymbolTable::DeepCopyFrom(std::string id) {
     return (BaseClass *) new_class;
   }
   else {
+    // Warn: Class Can't Deep Copy.
     auto new_class = new ClassClass();
     new_class->Assign(class_ptr);
     return (BaseClass *) new_class;
+  }
+}
+
+// ------------------ ClassTable ----------------------------------------------------
+
+ClassClass* ClassTable::GetInitializedClass(std::string class_name) {
+  if (table_.find(class_name) == table_.end()) {
+    std::cout << "Error" << std::endl;
+    exit(0);
+  }
+  ParseTree *def_pos = table_[class_name];
+
+  ClassClass *ret_class = new ClassClass(def_pos->sons_[0]->content_);
+  ret_class->initialized_ = true;
+  for (auto son : def_pos->sons_) {
+    if (son->head_ == VAR_DECLARATION) {
+      global_interpreter.AddVarDeclaration(son, ret_class->members_);
+    }
+  }
+  for (auto son : def_pos->sons_) {
+    if (son->head_ == METHOD_DECLARATION) {
+      global_interpreter.AddMethodDeclaration(son, ret_class->functions_);
+    }
   }
 }
 
@@ -123,7 +147,12 @@ void SymbolTable::LoadFromAnotherSymbolTable(SymbolTable &new_table) {
 // ---------------------- Interpreter --------------------------------------------------
 
 std::string Interpreter::Interprete() {
-  GenerateGlobalSymbolTable();
+  GenGlobalClassTable();
+}
+
+void Interpreter::GenGlobalClassTable() {
+// TODO
+
 }
 
 void Interpreter::AddVarDeclaration(ParseTree *tree, SymbolTable &symbols) {
@@ -170,6 +199,11 @@ void Interpreter::DelVarDeclaration(ParseTree *tree, SymbolTable &symbols) {
     symbols.Del(id);
   }
   return;
+}
+
+void Interpreter::AddMethodDeclaration(
+  ParseTree *tree, std::map<std::string, Function *> &functions) {
+  // TODO
 }
 
 void Interpreter::ExecuteStatement(ParseTree *tree, SymbolTable &symbols) {
@@ -392,7 +426,7 @@ BaseClass* Interpreter::EvalExpression(ParseTree *tree, SymbolTable &symbols) {
   }
   else if (tree->head_ == EXPRESSION_NEW_CLASS) {
     std::string id = tree->sons_[1]->content_;
-    ClassClass* new_class = (ClassClass *) class_table_.DeepCopyFrom(id);
+    ClassClass* new_class = (ClassClass *) class_table_.GetInitializedClass(id);
     if (new_class == nullptr) {
       std::cout << "Error: No Such Class" << std::endl;
       exit(0);

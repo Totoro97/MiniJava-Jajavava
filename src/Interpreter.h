@@ -140,6 +140,16 @@ public:
   void LoadFromAnotherSymbolTable(SymbolTable &new_table);
 };
 
+// ClassTable ---------------------------------------------------------------------------------------------
+
+class ClassTable {
+public:
+  ClassTable() {};
+
+  ClassClass *GetInitializedClass(std::string class_name);
+  std::map<std::string, ParseTree *> table_;
+};
+
 // interpreter --------------------------------------------------------------------------------------------
 
 class Interpreter {
@@ -147,18 +157,19 @@ public:
   // method
   Interpreter(ParseTree *abstract_parse_tree = nullptr);
   std::string Interprete();
-  void GenerateGlobalSymbolTable();
-  
+  void GenGlobalClassTable();
+
   void AddVarDeclaration(ParseTree *tree, SymbolTable &symbols);
   void DelVarDeclaration(ParseTree *tree, SymbolTable &symbols);
-  
+  void AddMethodDeclaration(ParseTree *tree, std::map<std::string, Function *> &functions);
+
   void ExecuteStatement(ParseTree *tree, SymbolTable &symbols);
   BaseClass *EvalExpression(ParseTree *tree, SymbolTable &symbols);
 
   void PrintData(BaseClass *data);
 
   // data
-  SymbolTable class_table_;
+  ClassTable class_table_;
 };
 
 static Interpreter global_interpreter;
