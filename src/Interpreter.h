@@ -3,6 +3,7 @@
 #include "Parser.h"
 // std
 #include <iostream>
+#include <stack>
 #include <string>
 
 enum SymbolType {
@@ -15,24 +16,6 @@ enum DataType {
 
 enum ClassType {
   CLASS_INT, CLASS_BOOL, CLASS_CLASS, CLASS_ARRAY
-};
-
-class Symbol {
-public:
-  std::string name;
-  SymbolType symbol_type;
-  ParseTree *def_pos;
-  void *data;
-
-  Symbol(std::string name = "", SymbolType symbol_type = SYM_VARIABLE,
-          ParseTree *def_pos = nullptr, void *data = nullptr) :
-          name(name), symbol_type(symbol_type), def_pos(def_pos), data(data) {}
-};
-
-class SymbolTable {
-public:
-  SymbolTable() {}
-  std::map<std::string, Symbol> table_;
 };
 
 // Data Class ---------------------------------------------------------------------------------------------
@@ -105,6 +88,7 @@ class ArrayClass : BaseClass {
 public:
   ArrayClass(int length = 1) {
     data_ = new int[length];
+    length_ = length;
   }
   void Assign(const BaseClass &r_value) final {
     if (r_value.class_type_ != CLASS_ARRAY) {
@@ -113,7 +97,8 @@ public:
       data_ = ((ArrayClass *) (&r_value))->data_;
     }
   }
-  int *data_;
+  int *data_ = nullptr;
+  int length_ = 0;
 };
 
 typedef std::vector<std::pair<ClassType, std::string> > Paras;
@@ -128,6 +113,14 @@ public:
   ParseTree *def_pos_;
 
   BaseClass* Execute(std::vector<BaseClass *> inputs, SymbolTable &symbols);
+};
+
+// SymbolTable --------------------------------------------------------------------------------------------
+
+class SymbolTable {
+public:
+  SymbolTable() {}
+  std::map<std::string, std::stack<BaseClass*>* > table_;
 };
 
 // interpreter --------------------------------------------------------------------------------------------

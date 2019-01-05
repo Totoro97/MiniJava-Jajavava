@@ -19,7 +19,7 @@ BaseClass* Function::Execute(std::vector<BaseClass *> inputs, SymbolTable &symbo
     }
   }
   for (int i = 0; i < (int) paras_.size(); i++) {
-    symbols.Add(paras_[i].first, *(inputs[i]));
+    symbols.Add(paras_[i].first, inputs[i]);
   }
   for (auto son : def_pos_->sons_) {
     if (son->head_ == VAR_DECLARATION) {
@@ -49,12 +49,13 @@ BaseClass* Function::Execute(std::vector<BaseClass *> inputs, SymbolTable &symbo
     }
   }
   for (int i = 0; i < (int) paras_.size(); i++) {
-    symbols.del(paras_[i].first);
+    symbols.Del(paras_[i].first);
   }
   return ret;
 }
 
-// ---------------------- Interpreter ------------------------------------------------
+// ---------------------- Interpreter --------------------------------------------------
+
 Interpreter::Interpreter(ParseTree *abstract_parse_tree) {
   tree_root_ = abstract_parse_tree;
 }
@@ -67,17 +68,120 @@ void Interpreter::AddVarDeclaration(ParseTree *tree, SymbolTable &symbols) {
   if (tree->head_ != VAR_DECLARATION) {
     return;
   }
-
-  std::string type_name = tree->sons_[0]->sons_[0]->content_;
-  
+  auto type_node = tree->sons_[0];
+  std::string id = tree->sons_[1]->content_;
+  if (type_node->head_ == TYPE_INT) {
+    symbols.Add(id, (BaseClass *) new IntClass());
+  }
+  else if (type_node->head_ == TYPE_BOOL) {
+    symbols.Add(id, (BaseClass *) new BoolClass());
+  }
+  else if (type_node->head_ == TYPE_ARRAY) {
+    symbols.Add(id, (BaseClass *) new ArrayClass());
+  }
+  else if (type_node->head_ == TYPE_CLASS) {
+    ClassClass *class_ptr = global_interpreter.class_table_.DeepCopyFrom(type_node->sons_[0]->content_);
+    if (class_ptr == nullptr) {
+      std::cout << "Error: No Such Class." << std::endl;
+      exit(0);
+    }
+    symbols.Add(id, (BaseClass *) class_ptr);
+  }
+  else {
+    std::cout << "Fxxk Your Type" << std::endl;
+    exit(0);
+  }
+  return;
 }
 
 void Interpreter::DelVarDeclaration(ParseTree *tree, SymbolTable &symbols) {
-
+  if (tree->head_ != VAR_DECLARATION) {
+    return;
+  }
+  auto type_node = tree->sons_[0];
+  std::string id = tree->sons_[1]->content_;
+  if (type_node->head_ == TYPE_INT) {
+    symbols.Del(id);
+  }
+  return;
 }
-  
-void Interpreter::ExecuteStatement(ParseTree *tree, SymbolTable &symbols) {
 
+void Interpreter::ExecuteStatement(ParseTree *tree, SymbolTable &symbols) {
+  if (tree->head_ == STATEMENT_S) {
+    for (auto son : tree->sons_) {
+      ExecuteStatement(son, symbols);
+    }
+  }
+  else if (tree->head_ == STATEMENT_IF_ELSE) {
+    BaseClass *tmp_exp = EvalExpression(tree->sons_[0], symbols);
+    if (tmp_exp->class_type_ != CLASS_BOOL) {
+      std::cout << "Data Type Invalid" << std::endl;
+      exit(0);
+    }
+    BoolClass *judge_exp = (BoolClass *) tmp_exp;
+    if (judge_exp->data_ == true) {
+      ExecuteStatement(tree->sons_[1], symbols);
+    }
+    else {
+      ExecuteStatement(tree->sons_[2], symbols);
+    }
+  }
+  else if (tree->head_ == STATEMENT_WHILE) {
+    do {
+      BaseClass *tmp_exp = EvalExpression(tree->sons_[0], symbols);
+      if (tmp_exp->class_type_ != CLASS_BOOL) {
+        std::cout << "Data Type Invalid" << std::endl;
+        exit(0);
+      }
+      BoolClass *judge_exp = (BoolClass *) tmp_exp;
+      if (judge_exp->data_ == false) {
+        break;
+      }
+      ExecuteStatement(tree->sons_[1], symbols);
+    } while (true);
+  }
+  else if (tree->head_ == STATEMENT_PRINT) {
+    PrintData(EvalExpression(tree->sons_[0], symbols));
+  }
+  else if (tree->head_ == STATEMENT_EQ) {
+    BaseClass *tmp_exp = EvalExpression(tree->sons_[1], symbols);
+    if (tree->sons_[0]->head_ != ID) {
+      std::cout << "Error" << std::endl;
+      exit(0);
+    }
+    symbols.Change(tree->sons_[0]->content_, tmp_exp);
+  }
+  else if (tree->head_ == STATEMENT_ARRAY) {
+    if (tree->sons_[0]->head_ != ID) {
+      std::cout << "Error" << std::endl;
+      exit(0);
+    }
+    std::string id = tree->sons_[0]->content_;
+    BaseClass *tmp_exp = symbols.Find(id);
+    if (tmp_exp == nullptr || tmp_exp->class_type_ != CLASS_ARRAY) {
+      std::cout << "Error: Can't Find Such Array" << std::endl;
+      exit(0);
+    }
+    ArrayClass *current_array = (ArrayClass *) tmp_exp;
+
+    tmp_exp = EvalExpression(tree->sons_[1], symbols);
+    if (tmp_exp->class_type_ != CLASS_INT) {
+      std::cout << "Error: Data Index Is Not Int" << std::endl;
+      exit(0);
+    }
+    int idx = ((IntClass *) tmp_exp)->data_;
+    if (idx < 0 || idx >= current_array->length_) {
+      std::cout << "Error: Index Out of Range" << std::endl;
+      exit(0);
+    }
+    tmp_exp = EvalExpression(tree->sons_[2], symbols);
+    if (tmp_exp->class_type_ != CLASS_INT) {
+      std::cout << "Error: Right Hand Value Is Not Int" << std::endl;
+      exit(0); 
+    }
+    int r_value = ((IntClass *) tmp_exp)->data_;
+    current_array->data_[idx] = r_value;
+  }
 }
 
 BaseClass* Interpreter::EvalExpression(ParseTree *tree, const SymbolTable &symbols) {
