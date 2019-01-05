@@ -29,15 +29,17 @@ class ParseTree {
 public:
   TokenTag head_;
   Rule *rule_;
+  Token token_;
   std::vector<ParseTree *> sons_;
   std::string content_, comment_;
 
   ParseTree(TokenTag head = DEFAULT, Rule *rule = nullptr,
-          std::vector<ParseTree *> sons = {}, std::string content = "") {
+          std::vector<ParseTree *> sons = {}, std::string content = "", Token token = Token(DEFAULT, "")) {
     head_ = head;
     rule_ = rule;
     sons_ = sons;
     content_ = content;
+    token_ = token;
   }
 };
 
@@ -78,8 +80,30 @@ public:
   int rule_num_;
   std::vector<NFANode *> NFAs_[TokenTag::END];
   std::set<TokenTag> termis_[TokenTag::END];
+
   void Enclosure(std::set<State> &wait_pool);
   void PrintContent(ParseTree *parse_tree);
   ParseTree* FilterParseTree(ParseTree* node);
+
+  std::string id_to_name_[256];
+  std::map<std::string, int> class_name_;
+  std::map<std::string, Token> class_methods_[256];
+  std::map<std::string, Token> class_vars_[256];
+  std::string AddMethod(int id, std::string method_name, Token method_tag);
+  std::string AddVar(int id, std::string var_name, Token var_tag);
+  Token GetType(ParseTree *node, int stamp = -1);
+  Token GetIdentifier(ParseTree *node, int class_id, std::string &info);
+
+  std::map<std::string, Token> vars_;
+  std::pair<std::string, Token> log_stack_[32768];
+  int stack_top_ = 0;
+
+  void Revert(int id, int last_top);
+  std::string AddVarWithStack(int id, std::string var_name, Token var_tag, int last_top);
+
+  void Goal(ParseTree* node, std::string &info);
+  void Statement(ParseTree* node, int class_id, std::string &info);
+  void Expression(ParseTree* node, int class_id, std::string &info);
+
   std::string Analysis(ParseTree *parse_tree);
 };
