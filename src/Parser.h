@@ -79,14 +79,24 @@ public:
   std::vector<NFANode *> NFAs_[TokenTag::END];
   std::set<TokenTag> termis_[TokenTag::END];
 
+  void Enclosure(std::set<State> &wait_pool);
+  void PrintContent(ParseTree *parse_tree);
+  ParseTree* FilterParseTree(ParseTree* node);
+
   std::map<std::string, int> class_name_;
   std::map<std::string, Token> class_methods_[256];
   std::map<std::string, Token> class_vars_[256];
   std::string AddMethod(int id, std::string method_name, Token method_tag);
   std::string AddVar(int id, std::string var_name, Token var_tag);
 
-  void Enclosure(std::set<State> &wait_pool);
-  void PrintContent(ParseTree *parse_tree);
-  ParseTree* FilterParseTree(ParseTree* node);
+
+  std::map<std::string, Token> vars_;
+  std::pair<std::string, Token> log_stack_[32768];
+  int stack_top_ = 0;
+
+  void Goal(ParseTree* node, std::string &info);
+  void Statement(ParseTree* node, int class_id, std::string &info);
+  void Expression(ParseTree* node, int class_id, std::string &info);
+
   std::string Analysis(ParseTree *parse_tree);
 };

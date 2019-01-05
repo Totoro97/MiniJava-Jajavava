@@ -387,6 +387,18 @@ ParseTree* ManualParser::FilterParseTree(ParseTree* node) {
   return new_node;
 }
 
+
+void ManualParser::Goal(ParseTree* node, std::string &info){
+	for (int class_id = 0; class_id < node->sons_.size(); class_id++){
+		ParseTree *cls = node->sons_[class_id];
+	}
+}
+
+void ManualParser::Statement(ParseTree* node, int class_id, std::string &info){
+}
+void ManualParser::Expression(ParseTree* node, int class_id, std::string &info){
+}
+
 std::string ManualParser::AddMethod(int id, std::string method_name, Token method_tag){
 	if (class_methods_[id].find(method_name) != class_methods_[id].end())
 		return "Error: Method Name \"" + method_name + "\" Multiple Definitions.";
@@ -480,7 +492,11 @@ std::string ManualParser::Analysis(ParseTree *root){
 	if (vis_cnt != class_cnt)
 		return "Error: Extends Relation Unvalid.";
 
-	return "OK";
+	std::string err_info = "OK";
+	Goal(root, err_info);
+
+
+	return err_info;
 }
 /*std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTree* &parse_tree) {
   std::vector<std::list<Rule> > paths;
