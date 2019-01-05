@@ -408,6 +408,15 @@ Token ManualParser::GetType(ParseTree *type, int stamp){
 
 	return token;
 }
+Token ManualParser::GetIdentifier(ParseTree *node, int class_id, std::string &info){
+	std::string name = node->content_;
+	if (class_vars_[class_id].find(name) == class_vars_[class_id].end()){
+		info = "Error: Identifier \"" + name + "\" Undefined.";
+		return Token();
+	}
+	return class_vars_[class_id][name];
+}
+
 void ManualParser::Revert(int id, int last_top){
 	while (last_top < stack_top_){
 		stack_top_--;
@@ -422,7 +431,7 @@ std::string ManualParser::AddVarWithStack(int id, std::string var_name, Token va
 		log_stack_[stack_top_++] = {var_name, Token(DEFAULT)};
 	else{
 		if (class_vars_[id][var_name].stamp >= last_top)
-			return "Error: Var Name \"" + var_name + "\" Multiple Definitions.";
+			return "Error: Var Name \"" + var_name + "\" Multiply Defined.";
 		log_stack_[stack_top_++] = {var_name, class_vars_[id][var_name]};
 	}
 
@@ -434,12 +443,14 @@ void ManualParser::Goal(ParseTree* node, std::string &info){
 	for (int class_id = 0; class_id < node->sons_.size(); class_id++){
 		ParseTree *cls = node->sons_[class_id];
 		if (cls->head_ == MAIN_CLASS){
-			for (ParseTree *son : cls->sons_) if (son->head_ == STATEMENT){
+			for (ParseTree *son : cls->sons_) if (son->head_ == STATEMENT)
 				Statement(son, class_id, info);
-			}
+			if (info != std::string("OK")) return;
 		}
 		else{
 			for (ParseTree *method : cls->sons_) if (method->head_ == METHOD_DECLARATION){
+				std::string method_name = method->sons_[2]->content_;
+				Token method_return = class_methods_[class_id][method_name];
 				int last_top = stack_top_;
 				for (ParseTree *son : method->sons_){
 					if (son->head_ == TYPE_ID_MANY){
@@ -458,9 +469,16 @@ void ManualParser::Goal(ParseTree* node, std::string &info){
 						Statement(son, class_id, info);
 					}
 					else if (son->head_ == EXPRESSION){
+						Expression(son, class_id, info);
+						if (info != std::string("OK")) return;
+						if (son->token_.tag == method_return.tag && son->token_.chars == method_return.chars);
+						else
+							info = "Error: Class \"" + cls->sons_[1]->content_ + "\" Method \"" + method_name + "\" Unvalid Return.";
 					}
 					if (info != std::string("OK")) return;
 				}
+
+				Revert(class_id, last_top);
 
 			}
 		}
@@ -469,36 +487,170 @@ void ManualParser::Goal(ParseTree* node, std::string &info){
 }
 
 void ManualParser::Statement(ParseTree* node, int class_id, std::string &info){
+	for (ParseTree *son : node->sons_){
+		if (son->head_ == EXPRESSION){
+			Expression(son, class_id, info);
+			if (info != "OK") return;
+		}
+		else if (son->head_ == STATEMENT){
+			Statement(son, class_id, info);
+			if (info != "OK") return;
+		}
+	}
+	switch (node->sons_[0]->head_){
+
+		case LCUR: break;
+		case IF:
+			if (node->sons_[2]->token_.tag != TYPE_BOOL)
+				info = "Error: Unvalid If Condition. ";
+			break;
+		case WHILE:
+			if (node->sons_[2]->token_.tag != TYPE_BOOL)
+				info = "Error: Unvalid While Condition. ";
+			break;
+		case PRINT:
+			if (node->sons_[2]->token_.tag != TYPE_INT)
+				info = "Error: Unvalid Print Value. ";
+			break;
+		default:
+			Token var = GetIdentifier(node->sons_[0], class_id, info);
+			if (info != std::string("OK")) return;
+			if (node->sons_[1]->head_ == EQ){
+				if (var.tag == node->sons_[2]->token_.tag && var.chars == node->sons_[2]->token_.chars);
+				else
+					info = "Error: Unvalid Assignment.";
+			}
+			else if (node->sons_[1]->head_ == LSQR){
+				if (var.tag != TYPE_ARRAY)
+					info = "Error: Identifier \"" + node->sons_[0]->content_ + "\" Is Not an Array.";
+				else if (node->sons_[2]->token_.tag != TYPE_INT)
+					info = "Error: Unvalid Array Index.";
+				else if (node->sons_[5]->token_.tag != TYPE_INT)
+					info = "Error: Unvalid Assignment.";
+			}
+	}
+
 }
 void ManualParser::Expression(ParseTree* node, int class_id, std::string &info){
+	for (ParseTree *son : node->sons_) if (son->head_ == EXPRESSION){
+		Expression(son, class_id, info);
+		if (info != "OK") return;
+	}
+
+	switch (node->sons_[0]->head_){
+		case INT_LITERAL:
+			node->token_ = Token(TYPE_INT);
+			break;
+		case TRUE: case FALSE:
+			node->token_ = Token(TYPE_BOOL);
+			break;
+		case LB:
+			node->token_ = node->sons_[1]->token_;
+			break;
+		case NT:
+			if (node->sons_[1]->token_.tag != TYPE_BOOL){
+				info = "Error: Unvalid Operation. ";
+				return;
+			}
+			break;
+		case NEW:
+			if (node->sons_[1]->head_ == INT){
+				if (node->sons_[3]->token_.tag != TYPE_INT){
+					info = "Error: Unvalid Operation. ";
+					return;
+				}
+				node->token_ = Token(TYPE_ARRAY);
+			}
+			else{
+				std::string name = node->sons_[1]->content_;
+				if (class_name_.find(name) == class_name_.end()){
+					info = "Error: Class \"" + name + "\" Undefined.";
+					return;
+				}
+				node->token_ = Token(TYPE_CLASS, name);
+			}
+			break;
+		case THIS:
+			node->token_ = Token(TYPE_CLASS, id_to_name_[class_id]);
+			break;
+		case ID:
+			node->token_ = GetIdentifier(node->sons_[0], class_id, info);
+			if (info != std::string("OK")) return;
+			break;
+		case EXPRESSION:
+			std::string cont = node->sons_[1]->content_;
+			if (cont == std::string("*") || cont == std::string("+") || cont == std::string("-")){
+				if (node->sons_[0]->token_.tag == TYPE_INT && node->sons_[2]->token_.tag == TYPE_INT)
+					node->token_ = Token(TYPE_INT);
+				else{
+					info = "Error: Unvalid Operation. ";
+					return;
+				}
+			}
+			else if (cont == std::string("&&")){
+				if (node->sons_[0]->token_.tag == TYPE_BOOL && node->sons_[2]->token_.tag == TYPE_BOOL)
+					node->token_ = Token(TYPE_BOOL);
+				else{
+					info = "Error: Unvalid Operation. ";
+					return;
+				}
+			}
+			else if (cont == std::string("<")){
+				if (node->sons_[0]->token_.tag == TYPE_INT && node->sons_[2]->token_.tag == TYPE_INT)
+					node->token_ = Token(TYPE_BOOL);
+				else{
+					info = "Error: Unvalid Operation. ";
+					return;
+					}
+			}
+			else if (cont == std::string("[")){
+				if (node->sons_[0]->token_.tag == TYPE_ARRAY && node->sons_[2]->token_.tag == TYPE_INT)
+					node->token_ = Token(TYPE_INT);
+				else{
+					info = "Error: Unvalid Operation. ";
+					return;
+				}
+			}
+			else if (node->sons_[2]->head_ == LENGTH){
+				if (node->sons_[0]->token_.tag == TYPE_ARRAY)
+					node->token_ = Token(TYPE_INT);
+			}
+			else if (node->sons_[2]->head_ == ID){
+				std::string name = node->sons_[0]->token_.chars;
+				if (node->sons_[0]->token_.tag == TYPE_CLASS && node->sons_[2]->head_ == ID){
+					GetIdentifier(node->sons_[2], class_name_[name], info);
+					if (info != std::string("OK")) return;
+				}
+			}
+	}
 }
 
 std::string ManualParser::AddMethod(int id, std::string method_name, Token method_tag){
 	if (class_methods_[id].find(method_name) != class_methods_[id].end())
-		return "Error: Method Name \"" + method_name + "\" Multiple Definitions.";
+		return "Error: Method Name \"" + method_name + "\" Multiply Defined.";
 	class_methods_[id][method_name] = method_tag;
 	return "OK";
 }
 std::string ManualParser::AddVar(int id, std::string var_name, Token var_tag){
 	if (class_vars_[id].find(var_name) != class_vars_[id].end())
-		return "Error: Var Name \"" + var_name + "\" Multiple Definitions.";
+		return "Error: Var Name \"" + var_name + "\" Multiply Defined.";
 	class_vars_[id][var_name] = var_tag;
 	return "OK";
 }
 std::string ManualParser::Analysis(ParseTree *root){
 	//std::cout<<token2str[root->head_]<<std::endl;
 	int class_cnt = 0, vis_cnt = 0;
-	std::map<std::string, TokenTag> return_value[256];
 	std::vector<int>edge[256];
 	int degree[256] = {};
 	std::queue<int>que;
-
 
 	for (ParseTree *son : root->sons_){
 		//std::cout<<son->sons_[1]->content_<<std::endl;
 		std::string name = son->sons_[1]->content_;
 		if (class_name_.find(name) != class_name_.end())
-			return "Error: Class Name \"" + name + "\" Multiple Definitions.";
+			return "Error: Class \"" + name + "\" Multiply Defined.";
+
+		id_to_name_[class_cnt] = name;
 		class_name_[name] = class_cnt++;
 	}
 	for (ParseTree *son : root->sons_) if (son->sons_[2]->head_ == TokenTag::EXTENDS_IDENTIFIER ){
@@ -506,7 +658,7 @@ std::string ManualParser::Analysis(ParseTree *root){
 		std::string name = son->sons_[2]->sons_[1]->content_;
 		//std::cout<<name<<std::endl;
 		if (class_name_.find(name) == class_name_.end())
-			return "Error: Extends Class \"" + name + "\" No Definitions.";
+			return "Error: Extends Class \"" + name + "\" Undefined.";
 		degree[son_id]++;
 		edge[class_name_[name]].push_back(son_id);
 	}
@@ -528,6 +680,7 @@ std::string ManualParser::Analysis(ParseTree *root){
 				type = var_or_method->sons_[0];
 				name = var_or_method->sons_[1]->content_;
 			}
+			else continue;
 
 			Token token = GetType(type);
 
