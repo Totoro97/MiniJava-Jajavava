@@ -387,10 +387,84 @@ ParseTree* ManualParser::FilterParseTree(ParseTree* node) {
   return new_node;
 }
 
+Token ManualParser::GetType(ParseTree *type, int stamp){
+
+	TokenTag tag = DEFAULT;
+	if (type->sons_[0]->head_ == INT){
+		if (type->sons_.size() == 1)
+			tag = TYPE_INT;
+		else
+			tag = TYPE_ARRAY;
+	}
+	else if (type->sons_[0]->head_ == BOOLEAN)
+		tag = TYPE_BOOL;
+	else if (type->sons_[0]->head_ == ID)
+		tag = TYPE_CLASS;
+
+
+	Token token(tag, "", stamp);
+	if (type->sons_[0]->head_ == ID)
+		token.chars = type->sons_[0]->content_;
+
+	return token;
+}
+void ManualParser::Revert(int id, int last_top){
+	while (last_top < stack_top_){
+		stack_top_--;
+		if (log_stack_[stack_top_].second.tag == DEFAULT)
+			class_vars_[id].erase(log_stack_[stack_top_].first);
+		else
+			class_vars_[id][log_stack_[stack_top_].first] = log_stack_[stack_top_].second;
+	}
+}
+std::string ManualParser::AddVarWithStack(int id, std::string var_name, Token var_tag, int last_top){
+	if (class_vars_[id].find(var_name) == class_vars_[id].end())
+		log_stack_[stack_top_++] = {var_name, Token(DEFAULT)};
+	else{
+		if (class_vars_[id][var_name].stamp >= last_top)
+			return "Error: Var Name \"" + var_name + "\" Multiple Definitions.";
+		log_stack_[stack_top_++] = {var_name, class_vars_[id][var_name]};
+	}
+
+	class_vars_[id][var_name] = var_tag;
+	return "OK";
+}
 
 void ManualParser::Goal(ParseTree* node, std::string &info){
 	for (int class_id = 0; class_id < node->sons_.size(); class_id++){
 		ParseTree *cls = node->sons_[class_id];
+		if (cls->head_ == MAIN_CLASS){
+			for (ParseTree *son : cls->sons_) if (son->head_ == STATEMENT){
+				Statement(son, class_id, info);
+			}
+		}
+		else{
+			for (ParseTree *method : cls->sons_) if (method->head_ == METHOD_DECLARATION){
+				int last_top = stack_top_;
+				for (ParseTree *son : method->sons_){
+					if (son->head_ == TYPE_ID_MANY){
+						info = AddVarWithStack(class_id, son->sons_[1]->content_, GetType(son->sons_[0], stack_top_), last_top);
+						if (info != std::string("OK")) return;
+						for (ParseTree *comma_type : son->sons_) if (comma_type->head_ == COMMA_TYPE_ID){
+							info = AddVarWithStack(class_id, son->sons_[2]->content_, GetType(son->sons_[1], stack_top_), last_top);
+							if (info != std::string("OK")) return;
+						}
+					}
+					else if (son->head_ == VAR_DECLARATION){
+						info = AddVarWithStack(class_id, son->sons_[1]->content_, GetType(son->sons_[0], stack_top_), last_top);
+						//if (info != std::string("OK")) return;
+					}
+					else if (son->head_ == STATEMENT){
+						Statement(son, class_id, info);
+					}
+					else if (son->head_ == EXPRESSION){
+					}
+					if (info != std::string("OK")) return;
+				}
+
+			}
+		}
+		//for ()
 	}
 }
 
@@ -455,23 +529,7 @@ std::string ManualParser::Analysis(ParseTree *root){
 				name = var_or_method->sons_[1]->content_;
 			}
 
-
-			TokenTag tag = DEFAULT;
-			if (type->sons_[0]->head_ == INT){
-				if (type->sons_.size() == 1)
-					tag = TYPE_INT;
-				else
-					tag = TYPE_ARRAY;
-			}
-			else if (type->sons_[0]->head_ == BOOLEAN)
-				tag = TYPE_BOOLEAN;
-			else if (type->sons_[0]->head_ == ID)
-				tag = TYPE_CLASS;
-
-
-			Token token(tag);
-			if (type->sons_[0]->head_ == ID)
-				token.chars = type->sons_[0]->content_;
+			Token token = GetType(type);
 
 			std::string info;
 			if (var_or_method->head_ == METHOD_DECLARATION)
