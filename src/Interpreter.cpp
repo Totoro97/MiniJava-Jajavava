@@ -19,7 +19,7 @@ BaseClass* Function::Execute(std::vector<BaseClass *> inputs, SymbolTable &symbo
     }
   }
   for (int i = 0; i < (int) paras_.size(); i++) {
-    symbols.Add(paras_[i].first, inputs[i]);
+    symbols.Add(paras_[i].second, inputs[i]);
   }
   for (auto son : def_pos_->sons_) {
     if (son->head_ == VAR_DECLARATION) {
@@ -49,16 +49,14 @@ BaseClass* Function::Execute(std::vector<BaseClass *> inputs, SymbolTable &symbo
     }
   }
   for (int i = 0; i < (int) paras_.size(); i++) {
-    symbols.Del(paras_[i].first);
+    symbols.Del(paras_[i].second);
   }
   return ret;
 }
 
-// ---------------------- Interpreter --------------------------------------------------
+// ---------------------- SymbolTable --------------------------------------------------
 
-Interpreter::Interpreter(ParseTree *abstract_parse_tree) {
-  tree_root_ = abstract_parse_tree;
-}
+// ---------------------- Interpreter --------------------------------------------------
 
 std::string Interpreter::Interprete() {
   GenerateGlobalSymbolTable();
@@ -80,7 +78,8 @@ void Interpreter::AddVarDeclaration(ParseTree *tree, SymbolTable &symbols) {
     symbols.Add(id, (BaseClass *) new ArrayClass());
   }
   else if (type_node->head_ == TYPE_CLASS) {
-    ClassClass *class_ptr = global_interpreter.class_table_.DeepCopyFrom(type_node->sons_[0]->content_);
+    ClassClass *class_ptr =
+      (ClassClass *) global_interpreter.class_table_.DeepCopyFrom(type_node->sons_[0]->content_);
     if (class_ptr == nullptr) {
       std::cout << "Error: No Such Class." << std::endl;
       exit(0);
@@ -326,7 +325,7 @@ BaseClass* Interpreter::EvalExpression(ParseTree *tree, SymbolTable &symbols) {
   }
   else if (tree->head_ == EXPRESSION_NEW_CLASS) {
     std::string id = tree->sons_[1]->content_;
-    ClassClass* new_class = class_table_.DeepCopyFrom(id);
+    ClassClass* new_class = (ClassClass *) class_table_.DeepCopyFrom(id);
     if (new_class == nullptr) {
       std::cout << "Error: No Such Class" << std::endl;
       exit(0);
@@ -352,6 +351,24 @@ BaseClass* Interpreter::EvalExpression(ParseTree *tree, SymbolTable &symbols) {
   }
 }
 
+void Interpreter::PrintData(BaseClass *data) {
+  if (data->class_type_ == CLASS_INT) {
+    std::cout << ((IntClass *) data)->data_ << std::endl;
+  }
+  else if (data->class_type_ == CLASS_BOOL) {
+    std::cout << ((BoolClass *) data)->data_ << std::endl;
+  }
+  else if (data->class_type_ == CLASS_ARRAY) {
+    auto array_ptr = (ArrayClass *) data;
+    for (int i = 0; i < array_ptr->length_; i++) {
+      std::cout << array_ptr->data_[i] << " ";
+    }
+    std::cout << std::endl;
+  }
+  else {
+    std::cout << "Error: Can't Print" << std::endl;
+  }
+}
 
 /* -------- deprecated ------------------
 

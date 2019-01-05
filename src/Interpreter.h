@@ -126,6 +126,13 @@ class SymbolTable {
 public:
   SymbolTable() {}
   std::map<std::string, std::stack<BaseClass*>* > table_;
+
+  void Add(std::string id, BaseClass *class_ptr);
+  void Change(std::string id, BaseClass *class_ptr);
+  void Del(std::string id);
+  BaseClass *Find(std::string id);
+  BaseClass *DeepCopyFrom(std::string id);
+  void LoadFromAnotherSymbolTable(SymbolTable &new_table);
 };
 
 // interpreter --------------------------------------------------------------------------------------------
@@ -142,8 +149,11 @@ public:
   
   void ExecuteStatement(ParseTree *tree, SymbolTable &symbols);
   BaseClass *EvalExpression(ParseTree *tree, SymbolTable &symbols);
+
+  void PrintData(BaseClass *data);
+
   // data
-  ParseTree *tree_root_;
+  SymbolTable class_table_;
 };
 
 static Interpreter global_interpreter;
