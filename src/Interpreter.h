@@ -60,6 +60,35 @@ public:
   bool data_;
 };
 
+class ArrayClass : BaseClass {
+public:
+  ArrayClass(int length = 1) {
+    data_ = new int[length];
+    length_ = length;
+  }
+  void Assign(const BaseClass &r_value) final {
+    if (r_value.class_type_ != CLASS_ARRAY) {
+      std::cout << "Error: Data Type Not Correspond." << std::endl;
+      exit(0);
+      data_ = ((ArrayClass *) (&r_value))->data_;
+    }
+  }
+  int *data_ = nullptr;
+  int length_ = 0;
+};
+
+class Function {
+public:
+  
+  Function(ClassType ret_type = CLASS_INT, Paras paras = {}, ParseTree *def_pos = nullptr) :
+    ret_type_(ret_type), paras_(paras), def_pos_(def_pos) {}
+  ClassType ret_type_;
+  Paras paras_;
+  ParseTree *def_pos_;
+
+  BaseClass* Execute(std::vector<BaseClass *> inputs, SymbolTable &symbols);
+};
+
 class ClassClass : BaseClass {
 public:
   ClassClass();
@@ -78,42 +107,18 @@ public:
       exit(0);
     }
     members_.LoadFromAnotherSymbolTable(ptr->members_);
+    functions_.clear();
+    for (auto func : ptr->functions_) {
+      functions_.insert(func);
+    }
   }
 
   SymbolTable members_;
+  std::map<std::string, Function *> functions_;
   std::string class_name_ = "";
 };
 
-class ArrayClass : BaseClass {
-public:
-  ArrayClass(int length = 1) {
-    data_ = new int[length];
-    length_ = length;
-  }
-  void Assign(const BaseClass &r_value) final {
-    if (r_value.class_type_ != CLASS_ARRAY) {
-      std::cout << "Error: Data Type Not Correspond." << std::endl;
-      exit(0);
-      data_ = ((ArrayClass *) (&r_value))->data_;
-    }
-  }
-  int *data_ = nullptr;
-  int length_ = 0;
-};
-
 typedef std::vector<std::pair<ClassType, std::string> > Paras;
-
-class Function {
-public:
-  
-  Function(ClassType ret_type = CLASS_INT, Paras paras = {}, ParseTree *def_pos = nullptr) :
-    ret_type_(ret_type), paras_(paras), def_pos_(def_pos) {}
-  ClassType ret_type_;
-  Paras paras_;
-  ParseTree *def_pos_;
-
-  BaseClass* Execute(std::vector<BaseClass *> inputs, SymbolTable &symbols);
-};
 
 // SymbolTable --------------------------------------------------------------------------------------------
 
@@ -136,7 +141,7 @@ public:
   void DelVarDeclaration(ParseTree *tree, SymbolTable &symbols);
   
   void ExecuteStatement(ParseTree *tree, SymbolTable &symbols);
-  BaseClass *EvalExpression(ParseTree *tree, const SymbolTable &symbols);
+  BaseClass *EvalExpression(ParseTree *tree, SymbolTable &symbols);
   // data
   ParseTree *tree_root_;
 };

@@ -182,10 +182,174 @@ void Interpreter::ExecuteStatement(ParseTree *tree, SymbolTable &symbols) {
     int r_value = ((IntClass *) tmp_exp)->data_;
     current_array->data_[idx] = r_value;
   }
+  else {
+    std::cout << "Error: This Is Not a Statement" << std::endl;
+  }
 }
 
-BaseClass* Interpreter::EvalExpression(ParseTree *tree, const SymbolTable &symbols) {
-
+BaseClass* Interpreter::EvalExpression(ParseTree *tree, SymbolTable &symbols) {
+  if (tree->head_ == EXPRESSION_BIOP) {
+    BaseClass *l_exp, *r_exp;
+    l_exp = EvalExpression(tree->sons_[0], symbols);
+    r_exp = EvalExpression(tree->sons_[2], symbols);
+    std::string op = tree->sons_[1]->content_;
+    if (op == "&&" || op == "||") {
+      if (l_exp->class_type_ != CLASS_BOOL || r_exp->class_type_ != CLASS_BOOL) {
+        std::cout << "Error: Invalid Expression Type" << std::endl;
+        exit(0);
+      }
+      if (op == "&&")
+        return
+          (BaseClass *) new BoolClass(((BoolClass *) l_exp)->data_ && ((BoolClass *) r_exp)->data_);
+      else
+        return
+          (BaseClass *) new BoolClass(((BoolClass *) l_exp)->data_ || ((BoolClass *) r_exp)->data_);
+    }
+    else if (op == "<" || op == ">") {
+      if (l_exp->class_type_ != CLASS_INT || r_exp->class_type_ != CLASS_INT) {
+        std::cout << "Error: Invalid Expression Type" << std::endl;
+        exit(0);
+      }
+      if (op == "<")
+        return
+          (BaseClass *) new BoolClass(((IntClass *) l_exp)->data_ < ((IntClass *) r_exp)->data_);
+      else
+        return
+          (BaseClass *) new BoolClass(((IntClass *) l_exp)->data_ > ((IntClass *) r_exp)->data_);
+    }
+    else if (op == "+" || op == "-" || op == "*" || op == "/") {
+      if (l_exp->class_type_ != CLASS_INT || r_exp->class_type_ != CLASS_INT) {
+        std::cout << "Error: Invalid Expression Type" << std::endl;
+        exit(0);
+      }
+      if (op == "+")
+        return
+          (BaseClass *) new IntClass(((IntClass *) l_exp)->data_ + ((IntClass *) r_exp)->data_);
+      else if (op == "-")
+        return
+          (BaseClass *) new IntClass(((IntClass *) l_exp)->data_ - ((IntClass *) r_exp)->data_);
+      else if (op == "*")
+        return
+          (BaseClass *) new IntClass(((IntClass *) l_exp)->data_ * ((IntClass *) r_exp)->data_);
+      else
+        return
+          (BaseClass *) new IntClass(((IntClass *) l_exp)->data_ / ((IntClass *) r_exp)->data_);
+    }
+    else {
+      std::cout << "Error: Invalid Operation Type" << std::endl;
+      exit(0);
+    }
+  }
+  else if (tree->head_ == EXPRESSION_INDEX) {
+    BaseClass *tmp_exp = EvalExpression(tree->sons_[0], symbols);
+    if (tmp_exp->class_type_ != CLASS_ARRAY) {
+      std::cout << "Error: It Is Not a Array" << std::endl;
+      exit(0);
+    }
+    ArrayClass *current_array = (ArrayClass *) tmp_exp;
+    tmp_exp = EvalExpression(tree->sons_[1], symbols);
+    if (tmp_exp->class_type_ != CLASS_INT) {
+      std::cout << "Error: Index Is Not Int" << std::endl;
+      exit(0);
+    }
+    int idx = ((IntClass *) tmp_exp)->data_;
+    if (idx < 0 || idx >= current_array->length_) {
+      std::cout << "Error: Index out of Range" << std::endl;
+      exit(0);
+    }
+    return (BaseClass *) new IntClass(current_array->data_[idx]);
+  }
+  else if (tree->head_ == EXPRESSION_LENGTH) {
+    BaseClass *tmp_exp = EvalExpression(tree->sons_[0], symbols);
+    if (tmp_exp->class_type_ != CLASS_ARRAY) {
+      std::cout << "Error: It Is Not a Array" << std::endl;
+      exit(0);
+    }
+    ArrayClass *current_array = (ArrayClass *) tmp_exp;
+    return (BaseClass *) new IntClass(current_array->length_);
+  }
+  else if (tree->head_ == EXPRESSION_FUNCTION) {
+    // { EXPRESSION, ID, ONE_OR_ZERO, PARAS }
+    BaseClass *tmp_exp = EvalExpression(tree->sons_[0], symbols);
+    if (tmp_exp->class_type_ != CLASS_CLASS) {
+      std::cout << "Error: It Is Not a Class" << std::endl;
+      exit(0);
+    }
+    ClassClass *current_class = (ClassClass *) tmp_exp;
+    std::string id = tree->sons_[1]->content_;
+    if ((current_class->functions_).find(id) == (current_class->functions_).end()) {
+      std::cout << "Error: No Such Function" << std::endl;
+    }
+    Function *func = (current_class->functions_)[id];
+    std::vector<BaseClass *> inputs;
+    inputs.clear();
+    if (tree->sons_.size() > 2) {
+      auto paras_node = tree->sons_[2];
+      for (auto son : paras_node->sons_) {
+        inputs.push_back(EvalExpression(son, symbols));
+      }
+    }
+    symbols.Add("this", (BaseClass *) current_class);
+    return func->Execute(inputs, symbols);
+    symbols.Del("this");
+  }
+  else if (tree->head_ == EXPRESSION_INT) {
+    std::string str = tree->sons_[0]->content_;
+    int val = 0;
+    int begin_idx = str[0] == '-' ? 1 : 0; 
+    for (int i = begin_idx; i < str.length(); i++) {
+      val = val * 10 + (int) (str[i] - '0');
+    }
+    if (begin_idx == 1) {
+      val = -val;
+    }
+    return (BaseClass *) new IntClass(val);
+  }
+  else if (tree->head_ == EXPRESSION_BOOL) {
+    if (tree->sons_[0]->head_ == TRUE) {
+      return (BaseClass *) new BoolClass(true);
+    }
+    else {
+      return (BaseClass *) new BoolClass(false);
+    }
+  }
+  else if (tree->head_ == EXPRESSION_ID || tree->head_ == EXPRESSION_THIS) {
+    return symbols.Find(tree->sons_[0]->content_);
+  }
+  else if (tree->head_ == EXPRESSION_NEW_ARRAY) {
+    auto tmp_ptr = EvalExpression(tree->sons_[2], symbols);
+    if (tmp_ptr->class_type_ != CLASS_INT) {
+      std::cout << "Error: Index is Not Int" << std::endl;
+      exit(0);
+    }
+    return (BaseClass *) new ArrayClass(((IntClass *) tmp_ptr)->data_);
+  }
+  else if (tree->head_ == EXPRESSION_NEW_CLASS) {
+    std::string id = tree->sons_[1]->content_;
+    ClassClass* new_class = class_table_.DeepCopyFrom(id);
+    if (new_class == nullptr) {
+      std::cout << "Error: No Such Class" << std::endl;
+      exit(0);
+    }
+    return (BaseClass *) new_class;
+  }
+  else if (tree->head_ == EXPRESSION_NT) {
+    BaseClass *tmp_exp = EvalExpression(tree->sons_[0], symbols);
+    if (tmp_exp->class_type_ != CLASS_BOOL) {
+      std::cout << "Error: Invalid Data Type" << std::endl;
+      exit(0);
+    }
+    BoolClass *new_bool = (BoolClass *) tmp_exp;
+    new_bool->data_ = !new_bool->data_;
+    return (BaseClass *) new_bool;
+  }
+  else if (tree->head_ == EXPRESSION_BRACKET) {
+    return EvalExpression(tree->sons_[0], symbols);
+  }
+  else {
+    std::cout << "Invalid Expresion" << std::endl;
+    return 0;
+  }
 }
 
 
