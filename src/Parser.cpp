@@ -612,15 +612,26 @@ void ManualParser::Expression(ParseTree* node, int class_id, std::string &info){
 				}
 			}
 			else if (node->sons_[2]->head_ == LENGTH){
-				if (node->sons_[0]->token_.tag == TYPE_ARRAY)
-					node->token_ = Token(TYPE_INT);
+				if (node->sons_[0]->token_.tag != TYPE_ARRAY){
+					info = "Error: Unvalid Operation. ";
+					return;
+				}
+				node->token_ = Token(TYPE_INT);
 			}
 			else if (node->sons_[2]->head_ == ID){
-				std::string name = node->sons_[0]->token_.chars;
-				if (node->sons_[0]->token_.tag == TYPE_CLASS && node->sons_[2]->head_ == ID){
-					GetIdentifier(node->sons_[2], class_name_[name], info);
-					if (info != std::string("OK")) return;
+				if (node->sons_[0]->token_.tag != TYPE_CLASS || node->sons_[2]->head_ != ID){
+					info = "Error: Unvalid Operation. ";
+					return;
 				}
+				std::string name = node->sons_[0]->token_.chars;
+				std::string method_name = node->sons_[2]->content_;
+				int id = class_name_[name];
+
+				if (class_methods_[id].find(method_name) == class_methods_[id].end()){
+					info = "Error: Method \"" + name + "." + method_name + "\" Undefined.";
+					return;
+				}
+				node->token_ = class_methods_[id][method_name];
 			}
 	}
 }
