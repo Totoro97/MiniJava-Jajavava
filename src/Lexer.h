@@ -28,6 +28,8 @@ enum TokenTag {
   EXPRESSION_INT, EXPRESSION_BOOL, EXPRESSION_ID, EXPRESSION_THIS,
   TYPE_INT, TYPE_BOOL, TYPE_ARRAY, TYPE_CLASS,
 
+  TYPE_INT, TYPE_ARRAY, TYPE_BOOL, TYPE_CLASS,
+
   END
 };
 
@@ -53,13 +55,16 @@ static const std::vector<std::string> token2str = {
   "EXPRESSION_INT", "EXPRESSION_BOOL", "EXPRESSION_ID", "EXPRESSION_THIS",
   "TYPE_INT", "TYPE_BOOL", "TYPE_ARRAY", "TYPE_CLASS",
 
+  "TYPE_INT", "TYPE_ARRAY", "TYPE_BOOL", "TYPE_CLASS",
+
   "END"
 };
 
 struct Token {
   TokenTag tag;
   std::string chars;
-  Token(TokenTag _tag = DEFAULT, std::string _chars = "") : tag(_tag), chars(_chars) {}
+  int stamp;
+  Token(TokenTag _tag = DEFAULT, std::string _chars = "", int _stamp = -1) : tag(_tag), chars(_chars), stamp(_stamp) {}
 };
 
 class NFANode {
