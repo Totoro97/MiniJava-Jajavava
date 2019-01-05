@@ -52,7 +52,7 @@ public:
   } 
   void Assign(const BaseClass &r_value) final {
     if (r_value.class_type_ != CLASS_INT) {
-      std::cout << "Error: Data Type Not Corrospond." << std::endl;
+      std::cout << "Error: Data Type Not Correspond." << std::endl;
       exit(0);
     }
     data_ = ((IntClass *) (&r_value))->data_;
@@ -68,7 +68,7 @@ public:
   }
   void Assign(const BaseClass &r_value) final {
     if (r_value.class_type_ != CLASS_BOOL) {
-      std::cout << "Error: Data Type Not Corrospond." << std::endl;
+      std::cout << "Error: Data Type Not Correspond." << std::endl;
       exit(0);
     }
     data_ = ((BoolClass *) (&r_value))->data_;
@@ -86,12 +86,12 @@ public:
 
   void Assign(const BaseClass &r_value) final {
     if (r_value.class_type_ != CLASS_CLASS) {
-      std::cout << "Error: Data Type Not Corrospond." << std::endl;
+      std::cout << "Error: Data Type Not Correspond." << std::endl;
       exit(0);
     }
     auto ptr = (ClassClass *) (&r_value);
     if (ptr->class_name_ != class_name_) {
-      std::cout << "Error: Data Type Not Corrospond." << std::endl;
+      std::cout << "Error: Data Type Not Correspond." << std::endl;
       exit(0);
     }
     members_.LoadFromAnotherSymbolTable(ptr->members_);
@@ -108,7 +108,7 @@ public:
   }
   void Assign(const BaseClass &r_value) final {
     if (r_value.class_type_ != CLASS_ARRAY) {
-      std::cout << "Error: Data Type Not Corrospond." << std::endl;
+      std::cout << "Error: Data Type Not Correspond." << std::endl;
       exit(0);
       data_ = ((ArrayClass *) (&r_value))->data_;
     }
@@ -116,16 +116,18 @@ public:
   int *data_;
 };
 
-typedef std::vector<std::pair<DataType, std::string> > Paras;
+typedef std::vector<std::pair<ClassType, std::string> > Paras;
 
 class Function {
 public:
   
-  DataFunction(DataType ret_type = DATA_INT, Paras paras = {}, ParseTree *def_pos = nullptr) :
+  Function(ClassType ret_type = CLASS_INT, Paras paras = {}, ParseTree *def_pos = nullptr) :
     ret_type_(ret_type), paras_(paras), def_pos_(def_pos) {}
-  DataType ret_type_;
+  ClassType ret_type_;
   Paras paras_;
   ParseTree *def_pos_;
+
+  BaseClass* Execute(std::vector<BaseClass *> inputs, SymbolTable &symbols);
 };
 
 // interpreter --------------------------------------------------------------------------------------------
@@ -136,9 +138,14 @@ public:
   Interpreter(ParseTree *abstract_parse_tree = nullptr);
   std::string Interprete();
   void GenerateGlobalSymbolTable();
-  DataClass* Interpreter::GetDataClassFromParseTree(ParseTree *tree);
-  void AddSymbolFromVarDeclaration(ParseTree *tree, SymbolTable *symbol_table);
-  void AddSymbolFromMethodDeclaration(ParseTree *tree, SymbolTable *symbol_table);
+  
+  void AddVarDeclaration(ParseTree *tree, SymbolTable &symbols);
+  void DelVarDeclaration(ParseTree *tree, SymbolTable &symbols);
+  
+  void ExecuteStatement(ParseTree *tree, SymbolTable &symbols);
+  BaseClass *EvalExpression(ParseTree *tree, const SymbolTable &symbols);
   // data
   ParseTree *tree_root_;
 };
+
+static Interpreter global_interpreter;
