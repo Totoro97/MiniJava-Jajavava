@@ -51,7 +51,7 @@ int main() {
   std::cout << std::endl << "----------------------- Aemantic Analysis ----------------------------"
     << std::endl << std::endl;
 
-  err_info = parser->Analysis(parse_tree);
+  // err_info = parser->Analysis(parse_tree);
   if (err_info != std::string("OK")){
   	std::cout << err_info << std::endl;
 	  return 0;
