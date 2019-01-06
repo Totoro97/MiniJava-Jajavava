@@ -51,6 +51,10 @@ BaseClass* Function::Execute(std::vector<BaseClass *> inputs, SymbolTable &symbo
   for (int i = 0; i < (int) paras_.size(); i++) {
     symbols.Del(paras_[i].second);
   }
+  if (ret == nullptr) {
+    std::cout << "Fxxk nullptr" << std::endl;
+    exit(0);
+  }
   return ret;
 }
 
@@ -64,26 +68,35 @@ void SymbolTable::Add(std::string id, BaseClass *class_ptr) {
 
 void SymbolTable::Change(std::string id, BaseClass *class_ptr) {
   Del(id);
-  Add(id, class_ptr);
+  if (class_ptr->class_type_ == CLASS_INT)
+    Add(id, (BaseClass *) new IntClass(((IntClass *) class_ptr)->data_));
+  else if (class_ptr->class_type_ == CLASS_BOOL)
+    Add(id, (BaseClass *) new BoolClass(((BoolClass *) class_ptr)->data_));
+  else
+    Add(id, class_ptr);
 }
 
 void SymbolTable::Del(std::string id) {
+  // std::cout << "id = " << id << std::endl;
   if (table_.find(id) == table_.end())
     table_.emplace(id, new std::stack<BaseClass *>);
   auto st = table_[id];
   if (st->empty()) {
-    std::cout << "Error: Can Not Del" << std::endl;
+    std::cout << "Error: Can Not Del " << id << std::endl;
+    exit(0);
   }
   st->pop();
 }
 
 BaseClass* SymbolTable::Find(std::string id) {
   if (table_.find(id) == table_.end()) {
-    return nullptr;
+    std::cout << "Find error: " << id << std::endl;
+    exit(0);
   }
   auto st = table_[id];
   if (st->empty()) {
-    return nullptr;
+    std::cout << "Find error: " << id << std::endl;
+    exit(0);
   }
   return st->top();
 }
@@ -300,6 +313,14 @@ void Interpreter::ExecuteStatement(ParseTree *tree, SymbolTable &symbols) {
       std::cout << "Error" << std::endl;
       exit(0);
     }
+    /*
+    if (tree->sons_[0]->content_ == "size") {
+      std::cout << "debug" << std::endl;
+      std::cout << tmp_exp->class_type_ << std::endl;
+      std::cout << ((IntClass *) tmp_exp)->data_ << std::endl;
+      std::cout << "bebug end" << std::endl;
+    }
+    */
     symbols.Change(tree->sons_[0]->content_, tmp_exp);
   }
   else if (tree->head_ == STATEMENT_ARRAY) {
@@ -331,6 +352,7 @@ void Interpreter::ExecuteStatement(ParseTree *tree, SymbolTable &symbols) {
       exit(0); 
     }
     int r_value = ((IntClass *) tmp_exp)->data_;
+    // std::cout << "debug: r_value = " << r_value << std::endl;
     current_array->data_[idx] = r_value;
   }
   else {
@@ -339,6 +361,9 @@ void Interpreter::ExecuteStatement(ParseTree *tree, SymbolTable &symbols) {
 }
 
 BaseClass* Interpreter::EvalExpression(ParseTree *tree, SymbolTable &symbols) {
+  // For Debug
+  //std::cout << token2str[tree->head_] << std::endl;
+
   if (tree->head_ == EXPRESSION_BIOP) {
     BaseClass *l_exp, *r_exp;
     l_exp = EvalExpression(tree->sons_[0], symbols);
@@ -409,6 +434,8 @@ BaseClass* Interpreter::EvalExpression(ParseTree *tree, SymbolTable &symbols) {
       exit(0);
     }
     return (BaseClass *) new IntClass(current_array->data_[idx]);
+    // auto int_ptr = new IntClass();
+    // int_ptr
   }
   else if (tree->head_ == EXPRESSION_LENGTH) {
     BaseClass *tmp_exp = EvalExpression(tree->sons_[0], symbols);
@@ -441,8 +468,21 @@ BaseClass* Interpreter::EvalExpression(ParseTree *tree, SymbolTable &symbols) {
       }
     }
     symbols.Add("this", (BaseClass *) current_class);
-    return func->Execute(inputs, symbols);
+    for (const auto &member : current_class->members_.table_) {
+      symbols.Add(member.first, member.second->top());
+    }
+    auto ret = func->Execute(inputs, symbols);
+    std::vector<std::string> vec;
+    vec.clear();
+    for (const auto &member : current_class->members_.table_) {
+      vec.push_back(member.first);
+    }
+    for (auto id : vec) {
+      current_class->members_.Change(id, symbols.Find(id));
+      symbols.Del(id);
+    }
     symbols.Del("this");
+    return ret;
   }
   else if (tree->head_ == EXPRESSION_INT) {
     std::string str = tree->sons_[0]->content_;
@@ -468,7 +508,7 @@ BaseClass* Interpreter::EvalExpression(ParseTree *tree, SymbolTable &symbols) {
     return symbols.Find(tree->sons_[0]->content_);
   }
   else if (tree->head_ == EXPRESSION_NEW_ARRAY) {
-    auto tmp_ptr = EvalExpression(tree->sons_[2], symbols);
+    auto tmp_ptr = EvalExpression(tree->sons_[1], symbols);
     if (tmp_ptr->class_type_ != CLASS_INT) {
       std::cout << "Error: Index is Not Int" << std::endl;
       exit(0);
@@ -498,12 +538,13 @@ BaseClass* Interpreter::EvalExpression(ParseTree *tree, SymbolTable &symbols) {
     return EvalExpression(tree->sons_[0], symbols);
   }
   else {
-    std::cout << "Invalid Expresion" << std::endl;
-    return 0;
+    std::cout << "Invalid Expresion: " << token2str[tree->head_] << " " << tree->content_ << std::endl;
+    exit(0);
   }
 }
 
 void Interpreter::PrintData(BaseClass *data) {
+  std::cout << "MiniJavaOutput >> ";
   if (data->class_type_ == CLASS_INT) {
     std::cout << ((IntClass *) data)->data_ << std::endl;
   }

@@ -19,6 +19,9 @@ int main() {
   std::ifstream in_stream;
   in_stream.open("test.java", std::ios::in);
   std::vector <Token> tokens;
+
+  std::cout << std::endl << "---------------------------- Lexer -----------------------------------"
+            << std::endl << std::endl;
   auto lexer = new ManualLexer();
   auto err_info = lexer->GetTokens(in_stream, tokens);
   delete(lexer);
@@ -30,7 +33,8 @@ int main() {
     std::cout << err_info << std::endl;
     return 0;
   }
-
+  std::cout << std::endl << "---------------------------- Parser ----------------------------------"
+            << std::endl << std::endl;
   ParseTree *parse_tree = nullptr, *abstract_parse_tree = nullptr;
   auto parser = new ManualParser();
   err_info = parser->GetParseTree(tokens, parse_tree);
@@ -44,15 +48,19 @@ int main() {
     // DrawParseTree(parse_tree, "");
   }
 
-  /*err_info = parser->Analysis(parse_tree);
-  delete(parser);
+  std::cout << std::endl << "----------------------- Aemantic Analysis ----------------------------"
+    << std::endl << std::endl;
+
+  err_info = parser->Analysis(parse_tree);
   if (err_info != std::string("OK")){
   	std::cout << err_info << std::endl;
 	  return 0;
+  } else {
+    std::cout << "yes" << std::endl;
   }
-  */
 
-  std::cout << std::endl << "----------------------------------------------------------" << std::endl;
+  std::cout << std::endl << "------------------------- Executed Result ----------------------------"
+    << std::endl << std::endl;
 
   global_interpreter.Interprete(abstract_parse_tree);
   
