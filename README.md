@@ -6,9 +6,9 @@ Project Github: https://github.com/Totoro97/Jajavava
 
 #### Authors: 
 
-WANG Peng: https://github.com/totoro97
+Lexer, Parser, Interpreter: WANG Peng https://github.com/totoro97
 
-ZHOU Lin: https://github.com/linyuzhou 
+Symatic Analyser: ZHOU Lin https://github.com/linyuzhou 
 
 #### Platform:
 
