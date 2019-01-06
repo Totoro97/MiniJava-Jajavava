@@ -15,7 +15,7 @@ enum DataType {
 };
 
 enum ClassType {
-  CLASS_INT, CLASS_BOOL, CLASS_CLASS, CLASS_ARRAY
+  CLASS_INT, CLASS_BOOL, CLASS_CLASS, CLASS_ARRAY, CLASS_UNKNOWN
 };
 
 // Data Class ---------------------------------------------------------------------------------------------
@@ -81,6 +81,8 @@ public:
   int length_ = 0;
 };
 
+typedef std::vector<std::pair<ClassType, std::string> > Paras;
+
 class Function {
 public:
   
@@ -123,7 +125,6 @@ public:
   bool initialized_ = false;
 };
 
-typedef std::vector<std::pair<ClassType, std::string> > Paras;
 
 // SymbolTable --------------------------------------------------------------------------------------------
 
@@ -155,9 +156,9 @@ public:
 class Interpreter {
 public:
   // method
-  Interpreter(ParseTree *abstract_parse_tree = nullptr);
-  std::string Interprete();
-  void GenGlobalClassTable();
+  Interpreter() {}
+  std::string Interprete(ParseTree *tree);
+  void GenGlobalClassTable(ParseTree *tree);
 
   void AddVarDeclaration(ParseTree *tree, SymbolTable &symbols);
   void DelVarDeclaration(ParseTree *tree, SymbolTable &symbols);

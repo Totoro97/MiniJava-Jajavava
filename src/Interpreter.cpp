@@ -146,13 +146,23 @@ void SymbolTable::LoadFromAnotherSymbolTable(SymbolTable &new_table) {
 
 // ---------------------- Interpreter --------------------------------------------------
 
-std::string Interpreter::Interprete() {
-  GenGlobalClassTable();
+std::string Interpreter::Interprete(ParseTree *tree) {
+  GenGlobalClassTable(tree);
+  SymbolTable symbols;
+  for (auto son : tree->sons_) {
+    if (son->head_ >= STATEMENT_S && son->head_ <= STATEMENT_ARRAY) {
+      ExecuteStatement(son, symbols);
+    }
+  }
+  return "";
 }
 
-void Interpreter::GenGlobalClassTable() {
-// TODO
-
+void Interpreter::GenGlobalClassTable(ParseTree *tree) {
+  for (auto son : tree->sons_) {
+    if (son->head_ == CLASS_DECLARATION) {
+      class_table_.table_.emplace(son->sons_[0]->content_, son);
+    }
+  }
 }
 
 void Interpreter::AddVarDeclaration(ParseTree *tree, SymbolTable &symbols) {
@@ -203,7 +213,48 @@ void Interpreter::DelVarDeclaration(ParseTree *tree, SymbolTable &symbols) {
 
 void Interpreter::AddMethodDeclaration(
   ParseTree *tree, std::map<std::string, Function *> &functions) {
-  // TODO
+  // { TYPE, ID, ONE_OR_ZERO, TYPE_ID_MANY, MANY_OR_ZERO, VAR_DECLARATION,
+  // MANY_OR_ZERO, STATEMENT, RETURN, EXPRESSION}
+  // TYPE_ID_MANY = { TYPE, ID, MANY_OR_ZERO, COMMA_TYPE_ID }
+  ClassType ret_type;
+  auto Type2Class = [](TokenTag token) {
+    if (token == TYPE_INT)
+      return CLASS_INT;
+    else if (token == TYPE_BOOL)
+      return CLASS_BOOL;
+    else if (token == TYPE_ARRAY)
+      return CLASS_ARRAY;
+    else if (token == TYPE_CLASS)
+      return CLASS_CLASS;
+    else
+      return CLASS_UNKNOWN;
+  };
+
+  ClassType ret_type = Type2Class(tree->sons_[0]->head_);
+  if (ret_type == CLASS_UNKNOWN) {
+    std::cout << "Error: at Method Declaration" << std::endl;
+    exit(0);
+  }
+  Paras paras;
+  for (auto son : tree->sons_) {
+    if (son->head_ == TYPE_ID_MANY) {
+      for (auto iter = son->sons_.begin(); iter != son->sons_.end(); iter++) {
+        if ((*iter)->head_ < TYPE_INT || (*iter)->head_ > TYPE_CLASS) {
+          continue;
+        }
+        ClassType para_type = Type2Class((*iter)->head_);
+        std::string para_id = (*std::next(iter))->content_;
+        if (para_id == "") {
+          std::cout << "Error: at Para Id" << std::endl;
+          exit(0);
+        }
+        paras.emplace_back(para_type, para_id);
+      }
+    }
+  }
+  std::string func_name = tree->sons_[1]->content_;
+  auto func = new Function(ret_type, paras, tree);
+  functions.emplace(func_name, func);
 }
 
 void Interpreter::ExecuteStatement(ParseTree *tree, SymbolTable &symbols) {
