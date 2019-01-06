@@ -6,6 +6,7 @@
 
 #include "Lexer.h"
 #include "Parser.h"
+#include "Interpreter.h"
 
 void DrawParseTree(ParseTree *root, std::string sp) {
   std::cout << sp << token2str[root->head_] << " " << root->content_ << std::endl;
@@ -40,16 +41,20 @@ int main() {
     return 0;
   } else {
     DrawParseTree(abstract_parse_tree, "");
-    DrawParseTree(parse_tree, "");
+    // DrawParseTree(parse_tree, "");
   }
 
-  err_info = parser->Analysis(parse_tree);
+  /*err_info = parser->Analysis(parse_tree);
   delete(parser);
   if (err_info != std::string("OK")){
   	std::cout << err_info << std::endl;
-	return 0;
+	  return 0;
   }
+  */
 
+  std::cout << std::endl << "----------------------------------------------------------" << std::endl;
+
+  global_interpreter.Interprete(abstract_parse_tree);
   
   return 0;
 }

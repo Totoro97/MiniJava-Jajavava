@@ -134,6 +134,7 @@ ClassClass* ClassTable::GetInitializedClass(std::string class_name) {
       global_interpreter.AddMethodDeclaration(son, ret_class->functions_);
     }
   }
+  return ret_class;
 }
 
 void SymbolTable::LoadFromAnotherSymbolTable(SymbolTable &new_table) {
@@ -149,7 +150,7 @@ void SymbolTable::LoadFromAnotherSymbolTable(SymbolTable &new_table) {
 std::string Interpreter::Interprete(ParseTree *tree) {
   GenGlobalClassTable(tree);
   SymbolTable symbols;
-  for (auto son : tree->sons_) {
+  for (auto son : tree->sons_[0]->sons_) {
     if (son->head_ >= STATEMENT_S && son->head_ <= STATEMENT_ARRAY) {
       ExecuteStatement(son, symbols);
     }
@@ -216,7 +217,6 @@ void Interpreter::AddMethodDeclaration(
   // { TYPE, ID, ONE_OR_ZERO, TYPE_ID_MANY, MANY_OR_ZERO, VAR_DECLARATION,
   // MANY_OR_ZERO, STATEMENT, RETURN, EXPRESSION}
   // TYPE_ID_MANY = { TYPE, ID, MANY_OR_ZERO, COMMA_TYPE_ID }
-  ClassType ret_type;
   auto Type2Class = [](TokenTag token) {
     if (token == TYPE_INT)
       return CLASS_INT;

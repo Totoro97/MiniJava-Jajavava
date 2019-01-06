@@ -278,7 +278,7 @@ std::string ManualParser::GetParseTree(const std::vector<Token> &tokens, ParseTr
       }
       if (!can_go_on) {
         std::cout << "Error: at";
-        for (int i = std::max(0, i - 4); i <= current_pos + 1 && i < tokens.size(); i++) {
+        for (int i = std::max(0, current_pos - 4); i <= current_pos + 1 && i < tokens.size(); i++) {
           std::cout << " " << tokens[i].chars;
         }
         std::cout << std::endl;

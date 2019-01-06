@@ -22,8 +22,10 @@ enum ClassType {
 
 class BaseClass {
 public:
-  BaseClass() {}
-  virtual void Assign(BaseClass *r_value);
+  BaseClass() = default;
+  virtual void Assign(BaseClass *r_value) {
+    std::cout << "BaseClass Here." << std::endl;
+  }
   
   ClassType class_type_;
 };
@@ -65,20 +67,37 @@ public:
   ArrayClass(int length = 1) {
     data_ = new int[length];
     length_ = length;
+    class_type_ = CLASS_ARRAY;
   }
   void Assign(BaseClass *r_value) final {
     if (r_value->class_type_ != CLASS_ARRAY) {
       std::cout << "Error: Data Type Not Correspond." << std::endl;
       exit(0);
-      auto array_ptr = (ArrayClass *) r_value;
-      length_ = array_ptr->length_;
-      data_ = new int[length_];
-      for (int i = 0; i < length_; i++)
-        data_[i] = array_ptr->data_[i];
     }
+    auto array_ptr = (ArrayClass *) r_value;
+    length_ = array_ptr->length_;
+    data_ = new int[length_];
+    for (int i = 0; i < length_; i++)
+      data_[i] = array_ptr->data_[i];
   }
   int *data_ = nullptr;
   int length_ = 0;
+};
+
+
+// SymbolTable --------------------------------------------------------------------------------------------
+
+class SymbolTable {
+public:
+  SymbolTable() = default;
+  std::map<std::string, std::stack<BaseClass*>* > table_;
+
+  void Add(std::string id, BaseClass *class_ptr);
+  void Change(std::string id, BaseClass *class_ptr);
+  void Del(std::string id);
+  BaseClass *Find(std::string id);
+  BaseClass *DeepCopyFrom(std::string id);
+  void LoadFromAnotherSymbolTable(SymbolTable &new_table);
 };
 
 typedef std::vector<std::pair<ClassType, std::string> > Paras;
@@ -99,6 +118,7 @@ class ClassClass : BaseClass {
 public:
   ClassClass(std::string class_name = "") {
     class_name_ = class_name;
+    class_type_ = CLASS_CLASS;
   }
 
   void Assign(BaseClass *r_value) final {
@@ -125,27 +145,11 @@ public:
   bool initialized_ = false;
 };
 
-
-// SymbolTable --------------------------------------------------------------------------------------------
-
-class SymbolTable {
-public:
-  SymbolTable() {}
-  std::map<std::string, std::stack<BaseClass*>* > table_;
-
-  void Add(std::string id, BaseClass *class_ptr);
-  void Change(std::string id, BaseClass *class_ptr);
-  void Del(std::string id);
-  BaseClass *Find(std::string id);
-  BaseClass *DeepCopyFrom(std::string id);
-  void LoadFromAnotherSymbolTable(SymbolTable &new_table);
-};
-
 // ClassTable ---------------------------------------------------------------------------------------------
 
 class ClassTable {
 public:
-  ClassTable() {};
+  ClassTable() = default;
 
   ClassClass *GetInitializedClass(std::string class_name);
   std::map<std::string, ParseTree *> table_;
@@ -156,7 +160,7 @@ public:
 class Interpreter {
 public:
   // method
-  Interpreter() {}
+  Interpreter() = default;
   std::string Interprete(ParseTree *tree);
   void GenGlobalClassTable(ParseTree *tree);
 
